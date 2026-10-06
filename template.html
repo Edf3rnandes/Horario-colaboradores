@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planner de Treinos</title>
+<style>
+:root{
+  --bg:#f5f6f8; --surface:#fff; --surface2:#eef0f4; --text:#1b2330; --muted:#5d6878; --line:#dde1e8;
+  --accent:#1f5fd1; --bad:#c62828; --bad-bg:#fdeaea; --warn:#a15c00; --warn-bg:#fff3dc; --ok:#1b7a3d; --ok-bg:#e4f5ea;
+  --kids:#d98a00; --teens:#0f9d8a; --adulto:#3b6fd4; --competitivo:#8a4fd0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161d; --surface:#1b212b; --surface2:#242c38; --text:#e8ecf2; --muted:#98a3b3; --line:#2f3947;
+    --accent:#6ea0ff; --bad:#ff8a80; --bad-bg:#3a1f1f; --warn:#ffcc66; --warn-bg:#3a2f18; --ok:#7bd99a; --ok-bg:#183222;
+    --kids:#f0b030; --teens:#34c4b0; --adulto:#7aa2ff; --competitivo:#b88af0;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1b212b; --surface2:#242c38; --text:#e8ecf2; --muted:#98a3b3; --line:#2f3947;
+  --accent:#6ea0ff; --bad:#ff8a80; --bad-bg:#3a1f1f; --warn:#ffcc66; --warn-bg:#3a2f18; --ok:#7bd99a; --ok-bg:#183222;
+  --kids:#f0b030; --teens:#34c4b0; --adulto:#7aa2ff; --competitivo:#b88af0;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 16px 0;max-width:1280px;margin:0 auto}
+h1{margin:0;font-size:22px}
+.sub{color:var(--muted);margin:2px 0 14px;font-size:14px}
+main{max-width:1280px;margin:0 auto;padding:0 16px 48px}
+nav.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
+nav.tabs button{white-space:nowrap}
+button,select,input{font:inherit;color:var(--text)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;cursor:pointer;color:var(--muted);font-weight:600}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--bad);color:#fff;font-size:12px;text-align:center;margin-left:4px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{background:none;border:0;padding:7px 12px;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:4px 11px;cursor:pointer;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chip i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.chip[aria-pressed="false"]{opacity:.45}
+select,input[type=number],input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+input[type=number]{width:72px}
+label.f{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card h3{margin:0 0 6px;font-size:16px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.note{border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:14px}
+.note.info{background:var(--warn-bg);color:var(--warn)}
+.note.bad{background:var(--bad-bg);color:var(--bad)}
+.note.ok{background:var(--ok-bg);color:var(--ok)}
+.note a{color:inherit;font-weight:700}
+
+/* grade semanal */
+.wk{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.wkgrid{display:grid;min-width:max-content;width:100%}
+.dh{position:sticky;top:0;z-index:3;background:var(--surface2);padding:8px;text-align:center;font-weight:700;border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+.dh small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.gut{position:relative;background:var(--surface2)}
+.gut span{position:absolute;right:6px;font-size:12px;color:var(--muted);transform:translateY(-7px)}
+.col{position:relative;border-left:1px solid var(--line)}
+.hl{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.gap{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--line) 6px 7px);opacity:.7}
+.blk{position:absolute;border-radius:7px;border-left:4px solid var(--c);background:color-mix(in srgb,var(--c) 17%,var(--surface));padding:3px 6px;overflow:hidden;font-size:12px;line-height:1.3;cursor:default}
+.blk b{display:block;font-size:12.5px}
+.blk .t{color:var(--muted)}
+.blk.dim{opacity:.18}
+.blk.bad{outline:2px solid var(--bad)}
+.cK{--c:var(--kids)} .cT{--c:var(--teens)} .cA{--c:var(--adulto)} .cC{--c:var(--competitivo)}
+
+/* tabelas */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface2);font-size:13px;color:var(--muted);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;background:color-mix(in srgb,var(--c) 20%,var(--surface));color:var(--text);border:1px solid color-mix(in srgb,var(--c) 55%,var(--surface))}
+.tag.bad{--c:var(--bad)}
+.pcard ul{list-style:none;margin:8px 0 0;padding:0}
+.pcard li{padding:5px 0;border-top:1px solid var(--line);font-size:13.5px}
+.role{font-size:11px;font-weight:700;padding:0 5px;border-radius:4px;background:var(--surface2);color:var(--muted);margin-left:4px}
+.role.p{background:var(--accent);color:#fff}
+
+/* quadras */
+.seglist{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;align-items:center}
+.sq{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:2px;background:var(--adulto)}
+.sq.over{background:var(--bad)}
+details{margin-bottom:10px}
+summary{cursor:pointer;font-weight:700;padding:8px 0}
+.bold-bad{color:var(--bad);font-weight:700}
+.iss{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+@media (max-width:600px){ h1{font-size:19px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Planner de Treinos</h1>
+  <p class="sub">Unidades, horários, professores e auxiliares &middot; gerado da planilha “horário colaborador”</p>
+</header>
+<main>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+  <div id="view"></div>
+</main>
+
+<script>
+const DATA = /*__DATA__*/null;
+const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sab"];
+const DAY_LONG = {Seg:"Segunda",Ter:"Terça",Qua:"Quarta",Qui:"Quinta",Sex:"Sexta",Sab:"Sábado"};
+const CATS = {Kids:"cK",Teens:"cT",Adulto:"cA",Competitivo:"cC"};
+const CAT_VAR = {Kids:"var(--kids)",Teens:"var(--teens)",Adulto:"var(--adulto)",Competitivo:"var(--competitivo)"};
+const VIEWS = [["semana","Semana"],["turmas","Turmas"],["pessoas","Equipe"],["quadras","Quadras"]];
+const PPM = 1.35, GAPH = 22;
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const state = {
+  tab: store.get("tab","geral"), view: store.get("view","semana"), person: "", cats: new Set(Object.keys(CATS)),
+  courts: store.get("quadras", {})
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hm = m => String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const first = n => n.split(" ")[0];
+const people = c => [{n:c.prof, r:"Prof"}, ...c.aux.map(n => ({n, r:"Aux"}))];
+const classesOf = u => DATA.classes.filter(c => c.unit === u);
+const byId = Object.fromEntries(DATA.classes.map(c => [c.id, c]));
+
+function fmtSlots(c){
+  const groups = [];
+  for(const s of c.slots){
+    const k = s.s+"-"+s.e; let g = groups.find(g => g.k===k);
+    if(!g){ g = {k, s:s.s, e:s.e, days:[]}; groups.push(g); }
+    g.days.push(s.d);
+  }
+  return groups.map(g => g.days.join("/")+" "+hm(g.s)+"–"+hm(g.e)).join(" · ");
+}
+const overlap = (a,b) => a.s < b.e && b.s < a.e;
+
+/* ---------- conflitos ---------- */
+function computeIssues(){
+  const per = {};
+  for(const c of DATA.classes) for(const p of people(c))
+    for(const s of c.slots) (per[p.n] = per[p.n] || []).push({...s, c, r:p.r});
+  const dup = new Map(), desl = new Map(), mesma = [];
+  for(const [n, list] of Object.entries(per)){
+    for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){
+      const a = list[i], b = list[j];
+      if(a.d !== b.d || a.c.id === b.c.id) continue;
+      const [x,y] = a.c.id < b.c.id ? [a,b] : [b,a];
+      const key = n+"|"+x.c.id+"|"+y.c.id;
+      if(overlap(a,b)){
+        const e = dup.get(key) || {n, x, y, days:[]}; e.days.push(a.d); dup.set(key, e);
+      } else if(a.c.unit !== b.c.unit){
+        const gap = a.s >= b.e ? a.s - b.e : b.s - a.e;
+        if(gap < 30){ const e = desl.get(key) || {n, x, y, days:[], gap}; e.days.push(a.d); desl.set(key, e); }
+      }
+    }
+  }
+  for(const c of DATA.classes) if(c.aux.includes(c.prof)) mesma.push(c);
+  return {dup:[...dup.values()], desl:[...desl.values()], mesma,
+          semAux: DATA.classes.filter(c => !c.aux.length)};
+}
+const ISSUES = computeIssues();
+const issueClassIds = new Set(ISSUES.dup.flatMap(e => [e.x.c.id, e.y.c.id]));
+
+/* ---------- navegação ---------- */
+function renderTabs(){
+  const tabs = [["geral","Visão geral"], ...DATA.units.map(u => [u,u]), ["conflitos","Conflitos"]];
+  document.getElementById("tabs").innerHTML = tabs.map(([k,l]) =>
+    `<button class="tab" role="tab" data-act="tab" data-v="${esc(k)}" aria-selected="${state.tab===k}">${esc(l)}${
+      k==="conflitos" ? `<span class="badge">${ISSUES.dup.length+ISSUES.desl.length}</span>` : ""}</button>`).join("");
+}
+function render(){
+  renderTabs();
+  const v = document.getElementById("view");
+  if(state.tab==="geral") v.innerHTML = overviewView();
+  else if(state.tab==="conflitos") v.innerHTML = issuesView();
+  else v.innerHTML = unitView(state.tab);
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-act]"); if(!t) return;
+  const a = t.dataset.act, v = t.dataset.v;
+  if(a==="tab"){ state.tab = v; store.set("tab", v); }
+  else if(a==="view"){ state.view = v; store.set("view", v); }
+  else if(a==="cat"){ state.cats.has(v) ? state.cats.delete(v) : state.cats.add(v); }
+  render();
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if(t.dataset.act==="person"){ state.person = t.value; render(); }
+  if(t.dataset.act==="courts"){
+    const n = parseInt(t.value,10);
+    if(n>0) state.courts[state.tab] = n; else delete state.courts[state.tab];
+    store.set("quadras", state.courts); render();
+  }
+});
+
+/* ---------- visão da unidade ---------- */
+function filtersBar(unitClasses){
+  const names = [...new Set(unitClasses.flatMap(c => people(c).map(p => p.n)))].sort((a,b)=>a.localeCompare(b,"pt"));
+  return `<div class="bar">
+    <label class="f">Destacar pessoa
+      <select data-act="person"><option value="">Todos</option>${names.map(n =>
+        `<option value="${esc(n)}"${n===state.person?" selected":""}>${esc(n)}</option>`).join("")}</select></label>
+    <span>${Object.keys(CATS).map(k => `<button class="chip" style="--c:${CAT_VAR[k]}" data-act="cat" data-v="${k}" aria-pressed="${state.cats.has(k)}"><i></i>${k}</button>`).join(" ")}</span>
+  </div>`;
+}
+const visible = c => state.cats.has(c.cat) && (!state.person || people(c).some(p => p.n===state.person));
+
+function unitView(u){
+  const cs = classesOf(u);
+  const seg = `<div class="seg">${VIEWS.map(([k,l]) =>
+    `<button data-act="view" data-v="${k}" aria-pressed="${state.view===k}">${l}</button>`).join("")}</div>`;
+  const courts = state.courts[u] || "";
+  const top = `<div class="bar">${seg}
+    <label class="f">Quadras em ${esc(u)}
+      <input type="number" min="1" max="30" placeholder="?" value="${courts}" data-act="courts"></label>
+    <span class="muted small">${cs.length} turmas</span></div>`;
+  let body = "";
+  if(state.view==="semana") body = filtersBar(cs) + weekView(cs);
+  else if(state.view==="turmas") body = filtersBar(cs) + classTable(cs.filter(visible), false);
+  else if(state.view==="pessoas") body = peopleView(cs, false);
+  else body = courtsView(u, cs);
+  return top + body;
+}
+
+/* grade semanal */
+function weekView(cs){
+  const slots = cs.flatMap(c => c.slots.map(s => ({...s, c})));
+  if(!slots.length) return "";
+  const hours = [];
+  for(let h=0; h<24; h++) if(slots.some(s => s.s < (h+1)*60 && s.e > h*60)) hours.push(h);
+  const off = {}; let y = 10, prev = null; const gaps = [];
+  for(const h of hours){
+    if(prev!==null && h!==prev+1){ gaps.push(y); y += GAPH; }
+    off[h] = y; y += 60*PPM; prev = h;
+  }
+  const H = y + 10;
+  const Y = m => off[Math.floor(m/60)] + (m%60)*PPM;
+  const Yend = m => Y(m-1) + PPM;
+  const days = DAYS.filter(d => slots.some(s => s.d===d));
+  const lanesPer = {}, placed = {};
+  for(const d of days){
+    const ds = slots.filter(s => s.d===d).sort((a,b) => a.s-b.s || b.e-a.e);
+    let cluster = [], end = -1, maxL = 1;
+    const flush = () => { cluster.forEach(s => s.n = Math.max(1, ...cluster.map(x => x.lane+1))); maxL = Math.max(maxL, ...cluster.map(s=>s.n), 1); cluster = []; };
+    for(const s of ds){
+      if(cluster.length && s.s >= end) { flush(); end = -1; }
+      const used = cluster.filter(x => x.e > s.s).map(x => x.lane);
+      let l = 0; while(used.includes(l)) l++;
+      s.lane = l; cluster.push(s); end = Math.max(end, s.e);
+    }
+    flush(); lanesPer[d] = maxL; placed[d] = ds;
+  }
+  const cols = `54px ${days.map(d => `minmax(${Math.max(150, lanesPer[d]*138)}px,${lanesPer[d]}fr)`).join(" ")}`;
+  const heads = days.map(d => {
+    const n = new Set(placed[d].map(s => s.c.id)).size;
+    return `<div class="dh">${DAY_LONG[d]}<small>${n} turmas</small></div>`; }).join("");
+  const gut = `<div class="gut" style="height:${H}px">${hours.map(h => `<span style="top:${off[h]}px">${String(h).padStart(2,"0")}:00</span>`).join("")}</div>`;
+  const body = days.map(d => `<div class="col" style="height:${H}px">
+      ${hours.map(h => `<div class="hl" style="top:${off[h]}px"></div>`).join("")}
+      ${gaps.map(g => `<div class="gap" style="top:${g}px;height:${GAPH}px"></div>`).join("")}
+      ${placed[d].map(s => {
+        const top = Y(s.s), h = Yend(s.e) - top, w = 100/s.n;
+        const dim = visible(s.c) ? "" : " dim";
+        const bad = issueClassIds.has(s.c.id) ? " bad" : "";
+        const aux = s.c.aux.map(first).join(", ");
+        const tip = `${s.c.name} (${s.c.cat})\n${hm(s.s)}–${hm(s.e)}\nProf: ${s.c.prof}${s.c.aux.length ? "\nAux: "+s.c.aux.join(", ") : ""}${bad ? "\n⚠ pessoa em outra turma no mesmo horário" : ""}`;
+        return `<div class="blk ${CATS[s.c.cat]||""}${dim}${bad}" title="${esc(tip)}" style="top:${top}px;height:${h-2}px;left:calc(${s.lane*w}% + 2px);width:calc(${w}% - 4px)">
+          <b>${esc(s.c.name)}</b><span class="t">${hm(s.s)}–${hm(s.e)}</span><br>
+          <span>${esc(first(s.c.prof))}${aux ? " · aux: "+esc(aux) : ""}</span></div>`; }).join("")}
+    </div>`).join("");
+  return `<div class="wk"><div class="wkgrid" style="grid-template-columns:${cols}">
+    <div class="dh" style="border-left:0"></div>${heads}${gut}${body}</div></div>
+    <p class="muted small">Faixas listradas = horários sem aula (ocultados). Borda vermelha = alguém dessa turma está em outra turma ao mesmo tempo (veja “Conflitos”).</p>`;
+}
+
+/* tabela de turmas */
+function classTable(cs, showUnit){
+  const order = Object.keys(CATS);
+  const rows = [...cs].sort((a,b) => order.indexOf(a.cat)-order.indexOf(b.cat) || a.slots[0].s - b.slots[0].s);
+  return `<div class="tw"><table><thead><tr>${showUnit?"<th>Unidade</th>":""}<th>Turma</th><th>Categoria</th><th>Dias e horário</th><th>Professor</th><th>Auxiliares</th></tr></thead><tbody>
+    ${rows.map(c => `<tr>${showUnit?`<td>${esc(c.unit)}</td>`:""}<td><b>${esc(c.name)}</b></td>
+      <td><span class="tag ${CATS[c.cat]||""}">${esc(c.cat)}</span></td><td>${esc(fmtSlots(c))}</td>
+      <td>${esc(c.prof)}</td><td>${c.aux.length ? c.aux.map(esc).join("<br>") : '<span class="muted">—</span>'}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+/* equipe */
+function peopleView(cs, showUnit){
+  const map = new Map();
+  for(const c of cs) for(const p of people(c)){
+    const e = map.get(p.n) || {n:p.n, items:new Map(), units:new Set()};
+    const it = e.items.get(c.id) || {c, roles:new Set()}; it.roles.add(p.r); e.items.set(c.id, it);
+    e.units.add(c.unit); map.set(p.n, e);
+  }
+  const list = [...map.values()].sort((a,b) => a.n.localeCompare(b.n,"pt"));
+  return `<div class="grid3">${list.map(e => {
+    const items = [...e.items.values()].sort((a,b) => a.c.unit.localeCompare(b.c.unit) || a.c.slots[0].s - b.c.slots[0].s);
+    const mins = items.reduce((t,i) => t + i.c.slots.reduce((x,s) => x + s.e - s.s, 0), 0);
+    const np = items.filter(i => i.roles.has("Prof")).length, na = items.length - np;
+    return `<div class="card pcard"><h3>${esc(e.n)}</h3>
+      <div class="muted small">${np} como professor · ${na} como auxiliar · ${(mins/60).toFixed(1).replace(".",",")} h/semana${e.units.size>1 ? " · "+[...e.units].map(esc).join(", ") : ""}</div>
+      <ul>${items.map(i => `<li><b>${esc(i.c.name)}</b>${[...i.roles].map(r => `<span class="role ${r==="Prof"?"p":""}">${r}</span>`).join("")}<br>
+        <span class="muted">${showUnit ? esc(i.c.unit)+" · " : ""}${esc(fmtSlots(i.c))}</span></li>`).join("")}</ul></div>`;
+  }).join("")}</div>`;
+}
+
+/* quadras */
+function courtsView(u, cs){
+  const n = state.courts[u];
+  const slots = cs.flatMap(c => c.slots.map(s => ({...s, c})));
+  let peakAll = 0;
+  const days = DAYS.filter(d => slots.some(s => s.d===d)).map(d => {
+    const ds = slots.filter(s => s.d===d);
+    const pts = [...new Set(ds.flatMap(s => [s.s, s.e]))].sort((a,b) => a-b);
+    const segs = [];
+    for(let i=0;i<pts.length-1;i++){
+      const act = ds.filter(s => s.s <= pts[i] && s.e >= pts[i+1]);
+      if(!act.length) continue;
+      const last = segs[segs.length-1], key = act.map(a=>a.c.id).sort().join();
+      if(last && last.e===pts[i] && last.key===key) last.e = pts[i+1];
+      else segs.push({s:pts[i], e:pts[i+1], act, key});
+    }
+    const peak = Math.max(...segs.map(s => s.act.length));
+    peakAll = Math.max(peakAll, peak);
+    return {d, segs, peak};
+  });
+  const note = n
+    ? (peakAll > n ? `<div class="note bad">Com ${n} quadra(s), há horários com mais turmas simultâneas do que quadras (pico: ${peakAll}). Considerando 1 quadra por turma.</div>`
+                   : `<div class="note ok">${n} quadra(s) comportam o pico de ${peakAll} turma(s) simultânea(s) (1 quadra por turma).</div>`)
+    : `<div class="note info">Informe a <b>quantidade de quadras</b> de ${esc(u)} no campo acima para ver onde falta espaço. Pico atual: <b>${peakAll}</b> turma(s) ao mesmo tempo.</div>`;
+  return note + `<div class="card"><div class="seglist">${days.map(({d,segs,peak}) =>
+    `<div><b>${DAY_LONG[d]}</b><div class="muted small">pico ${peak}</div></div>
+     <div>${segs.map(sg => {
+       const over = n && sg.act.length > n;
+       return `<div class="iss" style="border-top:0;padding:3px 0"><span class="muted">${hm(sg.s)}–${hm(sg.e)}</span> &nbsp;${
+         Array.from({length:sg.act.length}, (_,i) => `<span class="sq${n && i>=n?" over":""}"></span>`).join("")}
+         <span class="small${over?' bold-bad':''}"> ${sg.act.length} turma(s): ${sg.act.map(a => esc(a.c.name)).join(", ")}</span></div>`; }).join("")}</div>`).join("")}
+  </div></div>`;
+}
+
+/* ---------- visão geral ---------- */
+function overviewView(){
+  const cards = DATA.units.map(u => {
+    const cs = classesOf(u);
+    const staff = new Set(cs.flatMap(c => people(c).map(p => p.n)));
+    const cats = Object.keys(CATS).map(k => [k, cs.filter(c => c.cat===k).length]).filter(x => x[1]);
+    const n = state.courts[u];
+    return `<div class="card"><h3>${esc(u)}</h3>
+      <div>${cs.length} turmas · ${staff.size} pessoas na equipe</div>
+      <div style="margin:6px 0">${cats.map(([k,v]) => `<span class="tag ${CATS[k]}">${k} ${v}</span>`).join(" ")}</div>
+      <div class="muted small">Quadras: ${n ? n : "<b>a informar</b>"}</div>
+      <p><button class="chip" data-act="tab" data-v="${esc(u)}">Abrir planner →</button></p></div>`; }).join("");
+  const nIss = ISSUES.dup.length + ISSUES.desl.length;
+  return `<div class="grid3" style="margin-bottom:16px">${cards}</div>
+    ${nIss ? `<div class="note bad"><b>${ISSUES.dup.length}</b> sobreposições de pessoa em duas turmas e <b>${ISSUES.desl.length}</b> trocas de unidade sem intervalo. <a href="#" data-act="tab" data-v="conflitos">Ver conflitos</a></div>` : ""}
+    <h2 style="font-size:17px">Todas as turmas</h2>${classTable(DATA.classes, true)}
+    <h2 style="font-size:17px;margin-top:20px">Equipe (todas as unidades)</h2>${peopleView(DATA.classes, true)}`;
+}
+
+/* ---------- conflitos ---------- */
+function issuesView(){
+  const line = (e, extra) => {
+    const f = s => `<b>${esc(s.c.name)}</b> <span class="muted">(${esc(s.c.unit)}, ${hm(s.s)}–${hm(s.e)}, ${s.r==="Prof"?"professor":"auxiliar"})</span>`;
+    return `<div class="iss"><b>${esc(e.n)}</b>: ${f(e.x)} × ${f(e.y)} · ${[...new Set(e.days)].join("/")}${extra||""}</div>`;
+  };
+  const groupBy = list => { const g = {}; list.forEach(e => (g[e.n] = g[e.n]||[]).push(e)); return Object.entries(g).sort((a,b)=>b[1].length-a[1].length); };
+  const sec = (title, list, mk, open) => `<details${open?" open":""}><summary>${title} (${list.length})</summary>${
+    list.length ? list.map(mk).join("") : '<div class="muted">Nada encontrado.</div>'}</details>`;
+  return `<p class="muted">Gerado automaticamente a partir dos horários da planilha. Pode ser erro de preenchimento ou um ajuste real a fazer.</p>
+  <div class="card">
+  ${sec("Mesma pessoa em duas turmas ao mesmo tempo", ISSUES.dup, e => line(e), true)}
+  ${sec("Troca de unidade sem intervalo (menos de 30 min)", ISSUES.desl, e => line(e, ` · intervalo ${e.gap} min`), true)}
+  ${sec("Professor também listado como auxiliar na mesma turma", ISSUES.mesma, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}): ${esc(c.prof)}</div>`, true)}
+  ${sec("Turmas sem auxiliar", ISSUES.semAux, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}) · ${esc(fmtSlots(c))} · prof. ${esc(first(c.prof))}</div>`, false)}
+  </div>
+  <p class="muted small">Resumo por pessoa (sobreposições): ${groupBy(ISSUES.dup).map(([n,l]) => `${esc(first(n))} ${l.length}`).join(" · ") || "—"}</p>`;
+}
+
+render();
+</script>
+</body>
+</html>
