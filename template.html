@@ -94,6 +94,16 @@ summary{cursor:pointer;font-weight:700;padding:8px 0}
 .bold-bad{color:var(--bad);font-weight:700}
 .iss{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .blk{cursor:pointer}
+.blk .bn{font-size:12.5px}
+.blk .pp,.blk .pa{font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk .pp{font-size:15px;margin-top:3px}
+.blk .pa{font-size:14px}
+.pl{font-size:9px;font-weight:700;color:var(--muted);margin-right:4px;letter-spacing:.4px;text-transform:uppercase}
+.mp{display:inline-block;border-radius:6px;padding:0 6px;font-size:11.5px;font-weight:700;background:var(--surface2);color:var(--text);margin-left:4px}
+.mp.near{background:var(--warn-bg);color:var(--warn)}
+.mp.full{background:var(--bad-bg);color:var(--bad)}
+td.who{font-weight:700;font-size:15px}
+dialog textarea{width:100%;min-height:150px;margin-top:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:8px}
 .ic{font-size:12px}
 .rolebtns{display:flex;gap:6px;margin:6px 0 2px;flex-wrap:wrap}
 .rolebtns .chip{padding:2px 9px;font-size:12.5px}
@@ -130,7 +140,7 @@ const DAY_LONG = {Seg:"Segunda",Ter:"Terça",Qua:"Quarta",Qui:"Quinta",Sex:"Sext
 const CATS = {Kids:"cK",Teens:"cT",Adulto:"cA",Competitivo:"cC"};
 const CAT_VAR = {Kids:"var(--kids)",Teens:"var(--teens)",Adulto:"var(--adulto)",Competitivo:"var(--competitivo)"};
 const VIEWS = [["semana","Semana"],["turmas","Turmas"],["pessoas","Equipe"],["quadras","Quadras"]];
-const PPM = 1.35, GAPH = 22;
+const PPM = 2.1, GAPH = 22;
 
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
@@ -139,7 +149,7 @@ const store = {
 const state = {
   tab: store.get("tab","geral"), view: store.get("view","semana"), person: "", cats: new Set(Object.keys(CATS)),
   courts: {...DATA.courts, ...store.get("quadras", {})},
-  edits: {turmas:{}, funcoes:{}, pessoas:[], ...store.get("ajustes", {})}
+  edits: {turmas:{}, funcoes:{}, pessoas:[], matriculas:{}, ...store.get("ajustes", {})}
 };
 const ROLES = {prof:{icon:"🎓", label:"Professor (formado)"}, est:{icon:"🌱", label:"Estagiário"}};
 const ckey = c => c.unit+"|"+c.name;
@@ -159,6 +169,14 @@ const staffNames = () => [...new Set([
   ...Object.keys(DATA.funcoes||{}), ...Object.keys(state.edits.funcoes), ...(DATA.pessoas||[]), ...state.edits.pessoas
 ])].sort((a,b) => a.localeCompare(b,"pt"));
 function saveEdits(){ store.set("ajustes", state.edits); }
+const matOf = c => state.edits.matriculas[ckey(c)] || (DATA.matriculas||{})[ckey(c)] || null;
+function matLevel(m){ const r = m.limite ? m.qtd/m.limite : 0; return r>=1 ? "full" : r>=0.8 ? "near" : ""; }
+function matPill(c){ const m = matOf(c); return m ? `<span class="mp ${matLevel(m)}" title="Alunos matriculados / limite da turma">👥 ${m.qtd}/${m.limite}</span>` : ""; }
+function matCell(c){
+  const m = matOf(c); if(!m) return '<span class="muted">—</span>';
+  const v = m.limite - m.qtd;
+  return `<span class="mp ${matLevel(m)}" style="margin:0">${m.qtd}/${m.limite}</span><div class="muted small">${v>0 ? v+" vaga"+(v>1?"s":"") : "lotada"}</div>`;
+}
 applyEdits();
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -256,6 +274,9 @@ document.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if(!t) return;
   const a = t.dataset.act, v = t.dataset.v;
   if(a==="edit"){ openEditor(+v); return; }
+  if(a==="mat-open"){ openMat(); return; }
+  if(a==="mat-import"){ importMat(); return; }
+  if(a==="mat-clear"){ if(confirm("Apagar todas as matrículas importadas neste navegador?")){ state.edits.matriculas = {}; saveEdits(); render(); openMat(); } return; }
   if(a==="close"){ document.getElementById("dlg").close(); return; }
   if(a==="save"){ saveEditor(+v); return; }
   if(a==="restore"){ restoreClass(+v); return; }
@@ -269,7 +290,7 @@ document.addEventListener("click", e => {
   if(a==="import"){ document.getElementById("imp").click(); return; }
   if(a==="reset"){
     if(confirm("Descartar todas as alterações feitas neste navegador (professores, auxiliares e funções)?")){
-      state.edits = {turmas:{}, funcoes:{}, pessoas:[]}; saveEdits(); applyEdits(); render();
+      state.edits = {turmas:{}, funcoes:{}, pessoas:[], matriculas:{}}; saveEdits(); applyEdits(); render();
     }
     return;
   }
@@ -329,7 +350,7 @@ function checkEditor(){
 }
 document.addEventListener("change", e => {
   const t = e.target;
-  if(!t.closest || !t.closest("#dlg")) return;
+  if(!t.closest || !t.closest("#dlg") || !document.getElementById("ed-prof")) return;
   if(t.value==="__new__"){
     const n = (prompt("Nome completo da nova pessoa:")||"").trim().replace(/\s+/g," ");
     if(n){ if(!staffNames().includes(n)){ state.edits.pessoas.push(n); saveEdits(); }
@@ -353,7 +374,7 @@ function restoreClass(id){
   delete state.edits.turmas[ckey(c)]; saveEdits(); applyEdits(); document.getElementById("dlg").close(); render();
 }
 function exportEdits(){
-  const out = {turmas: state.edits.turmas, funcoes: state.edits.funcoes, pessoas: state.edits.pessoas};
+  const out = {turmas: state.edits.turmas, funcoes: state.edits.funcoes, pessoas: state.edits.pessoas, matriculas: state.edits.matriculas};
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(out,null,2)], {type:"application/json"}));
   a.download = "ajustes.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -363,12 +384,44 @@ document.getElementById("imp").addEventListener("change", e => {
   f.text().then(txt => {
     try{
       const j = JSON.parse(txt);
-      state.edits = {turmas:j.turmas||{}, funcoes:j.funcoes||{}, pessoas:j.pessoas||[]};
+      state.edits = {turmas:j.turmas||{}, funcoes:j.funcoes||{}, pessoas:j.pessoas||[], matriculas:j.matriculas||{}};
       saveEdits(); applyEdits(); render();
     }catch(err){ alert("Arquivo inválido."); }
     e.target.value = "";
   });
 });
+
+/* ---------- matrículas (colar do sistema) ---------- */
+const normTxt = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim().toLowerCase();
+function openMat(msg){
+  const dlg = document.getElementById("dlg");
+  dlg.innerHTML = `<h3>Colar matrículas</h3>
+    <div class="muted small">Copie as linhas do sistema (id, Nome, Descrição, Categoria, Unidade, Qtd. Matrículas, Limite) e cole abaixo. A turma é encontrada pelo nome + unidade. Pode colar aos poucos; o que já existe é atualizado.</div>
+    <textarea id="mat-txt" placeholder="3&#9;CB TQ Kids 1&#9;Ter/Qui 18:00 às 18:50&#9;Kids&#9;Cabo Branco&#9;5&#9;15"></textarea>
+    <div id="mat-res" style="margin-top:10px">${msg||""}</div>
+    <div class="dlgact"><button class="btn pri" data-act="mat-import">Importar</button>
+      <button class="btn" data-act="mat-clear">Apagar matrículas</button>
+      <button class="btn" data-act="close">Fechar</button></div>`;
+  dlg.removeAttribute("data-id"); if(!dlg.open) dlg.showModal();
+}
+function importMat(){
+  const txt = document.getElementById("mat-txt").value;
+  const rows = txt.split(/\r?\n/).map(l => (l.includes("\t") ? l.split("\t") : l.split(/\s{2,}/)).map(x => x.trim())).filter(r => r.some(Boolean));
+  let ok = 0; const miss = [];
+  for(const r of rows){
+    const qtd = parseInt(r[5],10), lim = parseInt(r[6],10);
+    if(r.length < 7 || isNaN(qtd) || isNaN(lim)){
+      if(!/^id$/i.test(r[0]||"") && !/nome/i.test(r[1]||"")) miss.push((r[1]||r[0]||"?")+" (linha incompleta)");
+      continue;
+    }
+    const cs = DATA.classes.filter(c => normTxt(c.name)===normTxt(r[1]) && normTxt(c.unit)===normTxt(r[4]));
+    if(cs.length !== 1){ miss.push(r[1]+" — "+r[4]); continue; }
+    state.edits.matriculas[ckey(cs[0])] = {qtd, limite:lim}; ok++;
+  }
+  saveEdits(); render();
+  openMat(`<div class="note ${ok && !miss.length ? "ok" : miss.length ? "bad" : "info"}" style="margin:0"><b>${ok}</b> turma(s) atualizada(s).${
+    miss.length ? "<br>Não encontrei: "+miss.map(esc).join("; ") : ""}${!ok && !miss.length ? " Nada para importar." : ""}</div>`);
+}
 
 /* ---------- visão da unidade ---------- */
 function filtersBar(unitClasses){
@@ -390,6 +443,7 @@ function unitView(u){
   const top = `<div class="bar">${seg}
     <label class="f">Quadras em ${esc(u)}
       <input type="number" min="1" max="30" placeholder="?" value="${courts}" data-act="courts"></label>
+    <button class="btn" data-act="mat-open">📋 Colar matrículas</button>
     <span class="muted small">${cs.length} turmas</span></div>`;
   let body = "";
   if(state.view==="semana") body = filtersBar(cs) + weekView(cs);
@@ -439,11 +493,11 @@ function weekView(cs, showUnit){
         const top = Y(s.s), h = Yend(s.e) - top, w = 100/s.n;
         const dim = (showUnit || visible(s.c)) ? "" : " dim";
         const bad = issueClassIds.has(s.c.id) ? " bad" : "";
-        const aux = s.c.aux.map(n => ic(n)+esc(first(n))).join(", ");
         const tip = `${s.c.name} (${s.c.cat})\n${hm(s.s)}–${hm(s.e)}\nClique para editar\nProf: ${s.c.prof}${s.c.aux.length ? "\nAux: "+s.c.aux.join(", ") : ""}${bad ? "\n⚠ pessoa em outra turma no mesmo horário" : ""}`;
         return `<div class="blk ${CATS[s.c.cat]||""}${dim}${bad}" data-act="edit" data-v="${s.c.id}" title="${esc(tip)}" style="top:${top}px;height:${h-2}px;left:calc(${s.lane*w}% + 2px);width:calc(${w}% - 4px)">
-          <b>${esc(s.c.name)}</b><span class="t">${showUnit ? esc(s.c.unit)+" · " : ""}${hm(s.s)}–${hm(s.e)}${s.c.q>1 ? " · "+s.c.q+" quadras" : ""}</span><br>
-          <span>${ic(s.c.prof)}${esc(first(s.c.prof))}${aux ? " · aux: "+aux : ""}</span></div>`; }).join("")}
+          <b class="bn">${esc(s.c.name)}</b><span class="t">${showUnit ? esc(s.c.unit)+" · " : ""}${hm(s.s)}–${hm(s.e)}${s.c.q>1 ? " · "+s.c.q+" quadras" : ""}</span>${matPill(s.c)}
+          <div class="pp"><span class="pl">Prof</span>${ic(s.c.prof)}${esc(first(s.c.prof))}</div>
+          ${s.c.aux.map(n => `<div class="pa"><span class="pl">Aux</span>${ic(n)}${esc(first(n))}</div>`).join("")}</div>`; }).join("")}
     </div>`).join("");
   return `<div class="wk"><div class="wkgrid" style="grid-template-columns:${cols}">
     <div class="dh" style="border-left:0"></div>${heads}${gut}${body}</div></div>
@@ -454,11 +508,11 @@ function weekView(cs, showUnit){
 function classTable(cs, showUnit){
   const order = Object.keys(CATS);
   const rows = [...cs].sort((a,b) => order.indexOf(a.cat)-order.indexOf(b.cat) || a.slots[0].s - b.slots[0].s);
-  return `<div class="tw"><table><thead><tr>${showUnit?"<th>Unidade</th>":""}<th>Turma</th><th>Categoria</th><th>Dias e horário</th><th>Professor responsável</th><th>Auxiliares</th><th>Quadras</th><th></th></tr></thead><tbody>
+  return `<div class="tw"><table><thead><tr>${showUnit?"<th>Unidade</th>":""}<th>Turma</th><th>Categoria</th><th>Dias e horário</th><th>Professor responsável</th><th>Auxiliares</th><th>Alunos</th><th>Quadras</th><th></th></tr></thead><tbody>
     ${rows.map(c => `<tr>${showUnit?`<td>${esc(c.unit)}</td>`:""}<td><b>${esc(c.name)}</b></td>
       <td><span class="tag ${CATS[c.cat]||""}">${esc(c.cat)}</span></td><td>${esc(fmtSlots(c))}</td>
-      <td>${ic(c.prof)}${esc(c.prof)}</td><td>${c.aux.length ? c.aux.map(n => ic(n)+esc(n)).join("<br>") : '<span class="muted">—</span>'}</td>
-      <td>${c.q||1}</td>
+      <td class="who">${ic(c.prof)}${esc(c.prof)}</td><td class="who">${c.aux.length ? c.aux.map(n => ic(n)+esc(n)).join("<br>") : '<span class="muted">—</span>'}</td>
+      <td>${matCell(c)}</td><td>${c.q||1}</td>
       <td><button class="edbtn" data-act="edit" data-v="${c.id}">✏️ Editar</button></td></tr>`).join("")}
   </tbody></table></div>`;
 }
@@ -540,6 +594,8 @@ function overviewView(){
       <div>${cs.length} turmas · ${staff.size} pessoas na equipe</div>
       <div style="margin:6px 0">${cats.map(([k,v]) => `<span class="tag ${CATS[k]}">${k} ${v}</span>`).join(" ")}</div>
       <div class="muted small">Quadras: ${n ? n : "<b>a informar</b>"}</div>
+      ${(() => { const ms = cs.map(matOf).filter(Boolean); if(!ms.length) return ""; const q = ms.reduce((a,m)=>a+m.qtd,0), l = ms.reduce((a,m)=>a+m.limite,0);
+        return `<div class="small" style="margin-top:4px">👥 ${q} alunos de ${l} vagas <span class="muted">(${ms.length} de ${cs.length} turmas)</span></div>`; })()}
       <p><button class="chip" data-act="tab" data-v="${esc(u)}">Abrir planner →</button></p></div>`; }).join("");
   const nIss = CLUSTERS.length;
   return `<div class="grid3" style="margin-bottom:16px">${cards}</div>
@@ -548,7 +604,7 @@ function overviewView(){
     <h2 style="font-size:17px;margin-top:20px">Equipe (todas as unidades)</h2>${rolesSummary()}${peopleView(DATA.classes, true)}
     <div class="card" style="margin-top:20px"><h3>Alterações</h3>
       <p class="muted small">Professores, auxiliares e funções editados ficam salvos <b>neste navegador</b>. Para guardar ou levar para outro aparelho, baixe o arquivo e carregue-o depois; para valer para todos, envie o arquivo <code>ajustes.json</code> ao repositório.</p>
-      <div class="dlgact"><button class="btn" data-act="export">Baixar alterações</button><button class="btn" data-act="import">Carregar alterações</button><button class="btn" data-act="reset">Descartar alterações</button></div></div>`;
+      <div class="dlgact"><button class="btn" data-act="mat-open">📋 Colar matrículas</button><button class="btn" data-act="export">Baixar alterações</button><button class="btn" data-act="import">Carregar alterações</button><button class="btn" data-act="reset">Descartar alterações</button></div></div>`;
 }
 
 /* ---------- conflitos ---------- */
