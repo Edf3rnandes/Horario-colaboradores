@@ -1,11 +1,36 @@
 {
-  "turmas": {},
+  "turmas": {
+    "Cabo Branco|CB SQS SE7+90 - Adulto": {
+      "prof": "Gilberto Rodrigues",
+      "aux": [],
+      "q": 1,
+      "dias": {
+        "Sex": {
+          "prof": "Alisson Macedo",
+          "aux": [],
+          "q": 1
+        }
+      }
+    }
+  },
   "funcoes": {},
   "pessoas": [],
   "matriculas": {
-    "Cabo Branco|CB TQ Kids 1": {"qtd": 5, "limite": 15},
-    "Cabo Branco|CB TQ Kids 2": {"qtd": 2, "limite": 15},
-    "Cabo Branco|CB SQ Teens 1": {"qtd": 12, "limite": 15},
-    "Cabo Branco|CB SQ Teens 2": {"qtd": 6, "limite": 15}
+    "Cabo Branco|CB TQ Kids 1": {
+      "qtd": 5,
+      "limite": 15
+    },
+    "Cabo Branco|CB TQ Kids 2": {
+      "qtd": 2,
+      "limite": 15
+    },
+    "Cabo Branco|CB SQ Teens 1": {
+      "qtd": 12,
+      "limite": 15
+    },
+    "Cabo Branco|CB SQ Teens 2": {
+      "qtd": 6,
+      "limite": 15
+    }
   }
 }

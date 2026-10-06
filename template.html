@@ -153,14 +153,30 @@ const state = {
 };
 const ROLES = {prof:{icon:"🎓", label:"Professor (formado)"}, est:{icon:"🌱", label:"Estagiário"}};
 const ckey = c => c.unit+"|"+c.name;
-const BASE = Object.fromEntries(DATA.classes.map(c => [c.id, {prof:c.prof, aux:[...c.aux], q:c.q||1}]));
-function applyEdits(){
-  for(const c of DATA.classes){
-    const e = state.edits.turmas[ckey(c)], b = BASE[c.id];
-    c.prof = e ? e.prof : b.prof; c.aux = e ? [...e.aux] : [...b.aux];
-    c.q = (e && e.q) || b.q;
-  }
+const ORIG = DATA.classes;
+const BASE = Object.fromEntries(ORIG.map(c => [c.id, {prof:c.prof, aux:[...c.aux], q:c.q||1}]));
+/* Uma turma pode ter exceções por dia (ex.: só a sexta com outro professor). Cada exceção vira uma "turma" própria
+   (id = id + 1000*(índice do dia+1)) com parent = id da turma original. */
+function effEntry(o){
+  const e = state.edits.turmas[ckey(o)], b = BASE[o.id];
+  return {prof: e ? e.prof : b.prof, aux: e ? [...e.aux] : [...b.aux], q: (e && e.q) || b.q,
+          dias: JSON.parse(JSON.stringify(e ? (e.dias||{}) : ((DATA.dias||{})[ckey(o)]||{})))};
 }
+function buildClasses(o){
+  const e = effEntry(o);
+  const ds = DAYS.filter(d => e.dias[d] && o.slots.some(s => s.d===d));
+  const out = [];
+  const main = {...o, prof:e.prof, aux:e.aux, q:e.q, parent:o.id, slots:o.slots.filter(s => !ds.includes(s.d))};
+  if(main.slots.length) out.push(main);
+  for(const d of ds){
+    const x = e.dias[d];
+    out.push({...o, id:o.id + 1000*(DAYS.indexOf(d)+1), parent:o.id, splitDay:d, slots:o.slots.filter(s => s.d===d),
+              prof:x.prof, aux:[...x.aux], q:x.q || e.q});
+  }
+  return out;
+}
+function applyEdits(){ DATA.classes = ORIG.flatMap(buildClasses); }
+const uniq = cs => cs.filter((c,i,a) => a.findIndex(x => x.parent===c.parent) === i);
 const roleOf = n => state.edits.funcoes[n] || (DATA.funcoes||{})[n] || "";
 const ic = n => roleOf(n) ? `<span class="ic" title="${ROLES[roleOf(n)].label}">${ROLES[roleOf(n)].icon}</span> ` : "";
 const staffNames = () => [...new Set([
@@ -313,32 +329,50 @@ document.addEventListener("change", e => {
 /* ---------- edição de professor/auxiliares ---------- */
 function otherClassesOf(c, name){
   if(!name) return [];
-  return DATA.classes.filter(o => o.id!==c.id && people(o).some(p => p.n===name) &&
+  return DATA.classes.filter(o => o.parent!==c.parent && people(o).some(p => p.n===name) &&
     o.slots.some(a => c.slots.some(b => a.d===b.d && overlap(a,b))));
 }
 function nameSelect(id, sel, allowEmpty){
   return `<select id="${id}">${allowEmpty ? '<option value="">— sem auxiliar —</option>' : ""}${staffNames().map(n =>
     `<option value="${esc(n)}"${n===sel?" selected":""}>${roleOf(n) ? ROLES[roleOf(n)].icon+" " : ""}${esc(n)}</option>`).join("")}<option value="__new__">+ Nova pessoa…</option></select>`;
 }
-function openEditor(id){
-  const c = DATA.classes.find(x => x.id===id), dlg = document.getElementById("dlg");
-  dlg.innerHTML = `<h3>${esc(c.name)}</h3><div class="muted small">${esc(c.unit)} · ${esc(fmtSlots(c))}</div>
-    <label>Professor responsável ${nameSelect("ed-prof", c.prof, false)}</label>
-    <label>Auxiliar 1 ${nameSelect("ed-a1", c.aux[0]||"", true)}</label>
-    <label>Auxiliar 2 ${nameSelect("ed-a2", c.aux[1]||"", true)}</label>
+function scopeVals(o, d){
+  const e = effEntry(o);
+  return d && e.dias[d] ? {prof:e.dias[d].prof, aux:e.dias[d].aux, q:e.dias[d].q || e.q} : {prof:e.prof, aux:e.aux, q:e.q};
+}
+function openEditor(id, scope){
+  const pid = id % 1000, o = ORIG.find(x => x.id===pid), dlg = document.getElementById("dlg");
+  if(scope===undefined) scope = id >= 1000 ? DAYS[Math.floor(id/1000)-1] : "";
+  const v = scopeVals(o, scope), e = effEntry(o);
+  const days = DAYS.filter(d => o.slots.some(s => s.d===d));
+  const exc = Object.keys(e.dias);
+  dlg.innerHTML = `<h3>${esc(o.name)}</h3><div class="muted small">${esc(o.unit)} · ${esc(fmtSlots(o))}</div>
+    ${days.length > 1 ? `<label>Alterar em
+      <select id="ed-scope">
+        <option value=""${!scope?" selected":""}>Todos os dias${exc.length ? " (menos as exceções)" : ""}</option>
+        ${days.map(d => `<option value="${d}"${scope===d?" selected":""}>Somente ${DAY_LONG[d]}${e.dias[d] ? " (tem exceção)" : ""}</option>`).join("")}</select></label>` : ""}
+    ${exc.length ? `<div class="muted small" style="margin-top:6px">Exceções: ${exc.map(d => DAY_LONG[d]+" → "+esc(first(e.dias[d].prof))).join("; ")}</div>` : ""}
+    <label>Professor responsável ${nameSelect("ed-prof", v.prof, false)}</label>
+    <label>Auxiliar 1 ${nameSelect("ed-a1", v.aux[0]||"", true)}</label>
+    <label>Auxiliar 2 ${nameSelect("ed-a2", v.aux[1]||"", true)}</label>
     <label>Quadras usadas por esta turma
-      <select id="ed-q">${[1,2,3,4,5,6].map(n => `<option value="${n}"${n===(c.q||1)?" selected":""}>${n} quadra${n>1?"s":""}</option>`).join("")}</select></label>
+      <select id="ed-q">${[1,2,3,4,5,6].map(n => `<option value="${n}"${n===(v.q||1)?" selected":""}>${n} quadra${n>1?"s":""}</option>`).join("")}</select></label>
     <div id="ed-warn" style="margin-top:12px"></div>
-    <div class="dlgact"><button class="btn pri" data-act="save" data-v="${id}">Salvar</button>
-      <button class="btn" data-act="restore" data-v="${id}">Voltar ao original</button>
+    <div class="dlgact"><button class="btn pri" data-act="save" data-v="${pid}">Salvar</button>
+      <button class="btn" data-act="restore" data-v="${pid}">${scope ? "Remover exceção deste dia" : "Voltar ao original"}</button>
       <button class="btn" data-act="close">Cancelar</button></div>`;
-  dlg.dataset.id = id; dlg.showModal(); checkEditor();
+  dlg.dataset.id = pid; dlg.dataset.scope = scope; if(!dlg.open) dlg.showModal(); checkEditor();
 }
 function editorValues(){
   return ["ed-prof","ed-a1","ed-a2"].map(i => document.getElementById(i).value);
 }
+function editorClass(){
+  const dlg = document.getElementById("dlg"), o = ORIG.find(x => x.id===+dlg.dataset.id), scope = dlg.dataset.scope;
+  const ex = Object.keys(effEntry(o).dias);
+  return {o, scope, c:{parent:o.id, slots: scope ? o.slots.filter(s => s.d===scope) : o.slots.filter(s => !ex.includes(s.d))}};
+}
 function checkEditor(){
-  const c = DATA.classes.find(x => x.id===+document.getElementById("dlg").dataset.id);
+  const {c} = editorClass();
   const [p,a1,a2] = editorValues(), out = [];
   for(const [n,r] of [[p,"responsável"],[a1,"auxiliar 1"],[a2,"auxiliar 2"]]){
     const o = otherClassesOf(c, n);
@@ -351,27 +385,39 @@ function checkEditor(){
 document.addEventListener("change", e => {
   const t = e.target;
   if(!t.closest || !t.closest("#dlg") || !document.getElementById("ed-prof")) return;
+  if(t.id==="ed-scope"){ openEditor(+document.getElementById("dlg").dataset.id, t.value); return; }
   if(t.value==="__new__"){
     const n = (prompt("Nome completo da nova pessoa:")||"").trim().replace(/\s+/g," ");
     if(n){ if(!staffNames().includes(n)){ state.edits.pessoas.push(n); saveEdits(); }
       const ids = ["ed-prof","ed-a1","ed-a2"], vals = editorValues().map((v,i) => ids[i]===t.id ? n : v);
-      const c = DATA.classes.find(x => x.id===+document.getElementById("dlg").dataset.id);
       ids.forEach((i,k) => { document.getElementById(i).outerHTML = nameSelect(i, vals[k]==="__new__" ? "" : vals[k], i!=="ed-prof"); });
     } else { t.value = t.dataset.prev || ""; }
   }
   checkEditor();
 });
-function saveEditor(id){
-  const c = DATA.classes.find(x => x.id===id), [p,a1,a2] = editorValues();
-  const aux = [a1,a2].filter(Boolean), q = +document.getElementById("ed-q").value || 1;
-  const b = BASE[id];
-  if(p===b.prof && aux.join("|")===b.aux.join("|") && q===b.q) delete state.edits.turmas[ckey(c)];
-  else state.edits.turmas[ckey(c)] = {prof:p, aux, q};
+function commitEntry(o, entry){
+  const b = BASE[o.id], baseDias = (DATA.dias||{})[ckey(o)] || {};
+  const same = entry.prof===b.prof && entry.aux.join("|")===b.aux.join("|") && entry.q===b.q &&
+               JSON.stringify(entry.dias)===JSON.stringify(baseDias);
+  if(same) delete state.edits.turmas[ckey(o)]; else state.edits.turmas[ckey(o)] = entry;
   saveEdits(); applyEdits(); document.getElementById("dlg").close(); render();
 }
+function saveEditor(id){
+  const {o, scope} = editorClass(), [p,a1,a2] = editorValues();
+  const aux = [a1,a2].filter(Boolean), q = +document.getElementById("ed-q").value || 1;
+  const entry = effEntry(o);
+  if(scope) entry.dias[scope] = {prof:p, aux, q};
+  else { entry.prof = p; entry.aux = aux; entry.q = q; }
+  for(const d of Object.keys(entry.dias)){
+    const x = entry.dias[d];
+    if(x.prof===entry.prof && x.aux.join("|")===entry.aux.join("|") && (x.q||entry.q)===entry.q) delete entry.dias[d];
+  }
+  commitEntry(o, entry);
+}
 function restoreClass(id){
-  const c = DATA.classes.find(x => x.id===id);
-  delete state.edits.turmas[ckey(c)]; saveEdits(); applyEdits(); document.getElementById("dlg").close(); render();
+  const {o, scope} = editorClass();
+  if(!scope){ delete state.edits.turmas[ckey(o)]; saveEdits(); applyEdits(); document.getElementById("dlg").close(); render(); return; }
+  const entry = effEntry(o); delete entry.dias[scope]; commitEntry(o, entry);
 }
 function exportEdits(){
   const out = {turmas: state.edits.turmas, funcoes: state.edits.funcoes, pessoas: state.edits.pessoas, matriculas: state.edits.matriculas};
@@ -414,7 +460,7 @@ function importMat(){
       if(!/^id$/i.test(r[0]||"") && !/nome/i.test(r[1]||"")) miss.push((r[1]||r[0]||"?")+" (linha incompleta)");
       continue;
     }
-    const cs = DATA.classes.filter(c => normTxt(c.name)===normTxt(r[1]) && normTxt(c.unit)===normTxt(r[4]));
+    const cs = ORIG.filter(c => normTxt(c.name)===normTxt(r[1]) && normTxt(c.unit)===normTxt(r[4]));
     if(cs.length !== 1){ miss.push(r[1]+" — "+r[4]); continue; }
     state.edits.matriculas[ckey(cs[0])] = {qtd, limite:lim}; ok++;
   }
@@ -444,7 +490,7 @@ function unitView(u){
     <label class="f">Quadras em ${esc(u)}
       <input type="number" min="1" max="30" placeholder="?" value="${courts}" data-act="courts"></label>
     <button class="btn" data-act="mat-open">📋 Colar matrículas</button>
-    <span class="muted small">${cs.length} turmas</span></div>`;
+    <span class="muted small">${uniq(cs).length} turmas</span></div>`;
   let body = "";
   if(state.view==="semana") body = filtersBar(cs) + weekView(cs);
   else if(state.view==="turmas") body = filtersBar(cs) + classTable(cs.filter(visible), false);
@@ -588,14 +634,14 @@ function overviewView(){
   const cards = DATA.units.map(u => {
     const cs = classesOf(u);
     const staff = new Set(cs.flatMap(c => people(c).map(p => p.n)));
-    const cats = Object.keys(CATS).map(k => [k, cs.filter(c => c.cat===k).length]).filter(x => x[1]);
+    const cats = Object.keys(CATS).map(k => [k, uniq(cs).filter(c => c.cat===k).length]).filter(x => x[1]);
     const n = state.courts[u];
     return `<div class="card"><h3>${esc(u)}</h3>
-      <div>${cs.length} turmas · ${staff.size} pessoas na equipe</div>
+      <div>${uniq(cs).length} turmas · ${staff.size} pessoas na equipe</div>
       <div style="margin:6px 0">${cats.map(([k,v]) => `<span class="tag ${CATS[k]}">${k} ${v}</span>`).join(" ")}</div>
       <div class="muted small">Quadras: ${n ? n : "<b>a informar</b>"}</div>
-      ${(() => { const ms = cs.map(matOf).filter(Boolean); if(!ms.length) return ""; const q = ms.reduce((a,m)=>a+m.qtd,0), l = ms.reduce((a,m)=>a+m.limite,0);
-        return `<div class="small" style="margin-top:4px">👥 ${q} alunos de ${l} vagas <span class="muted">(${ms.length} de ${cs.length} turmas)</span></div>`; })()}
+      ${(() => { const ms = uniq(cs).map(matOf).filter(Boolean); if(!ms.length) return ""; const q = ms.reduce((a,m)=>a+m.qtd,0), l = ms.reduce((a,m)=>a+m.limite,0);
+        return `<div class="small" style="margin-top:4px">👥 ${q} alunos de ${l} vagas <span class="muted">(${ms.length} de ${uniq(cs).length} turmas)</span></div>`; })()}
       <p><button class="chip" data-act="tab" data-v="${esc(u)}">Abrir planner →</button></p></div>`; }).join("");
   const nIss = CLUSTERS.length;
   return `<div class="grid3" style="margin-bottom:16px">${cards}</div>

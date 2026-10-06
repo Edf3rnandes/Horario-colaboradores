@@ -47,7 +47,8 @@ def main():
         if a:
             c["prof"], c["aux"], c["q"] = a["prof"], a["aux"], a.get("q", 1)
     data = {"units": units, "classes": classes, "courts": COURTS,
-            "funcoes": ajustes.get("funcoes", {}), "matriculas": ajustes.get("matriculas", {}), "pessoas": ajustes.get("pessoas", [])}
+            "funcoes": ajustes.get("funcoes", {}), "matriculas": ajustes.get("matriculas", {}),
+            "dias": {k: a["dias"] for k, a in ajustes.get("turmas", {}).items() if a.get("dias")}, "pessoas": ajustes.get("pessoas", [])}
     html = (ROOT / "template.html").read_text(encoding="utf-8")
     html = html.replace("/*__DATA__*/null", json.dumps(data, ensure_ascii=False))
     (ROOT / "index.html").write_text(html, encoding="utf-8")
