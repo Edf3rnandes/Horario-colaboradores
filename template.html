@@ -8,19 +8,19 @@
 :root{
   --bg:#f5f6f8; --surface:#fff; --surface2:#eef0f4; --text:#1b2330; --muted:#5d6878; --line:#dde1e8;
   --accent:#1f5fd1; --bad:#c62828; --bad-bg:#fdeaea; --warn:#a15c00; --warn-bg:#fff3dc; --ok:#1b7a3d; --ok-bg:#e4f5ea;
-  --kids:#d98a00; --teens:#0f9d8a; --adulto:#3b6fd4; --competitivo:#8a4fd0;
+  --kids:#d98a00; --teens:#0f9d8a; --adulto:#3b6fd4; --competitivo:#8a4fd0; --korpus:#d6336c;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#12161d; --surface:#1b212b; --surface2:#242c38; --text:#e8ecf2; --muted:#98a3b3; --line:#2f3947;
     --accent:#6ea0ff; --bad:#ff8a80; --bad-bg:#3a1f1f; --warn:#ffcc66; --warn-bg:#3a2f18; --ok:#7bd99a; --ok-bg:#183222;
-    --kids:#f0b030; --teens:#34c4b0; --adulto:#7aa2ff; --competitivo:#b88af0;
+    --kids:#f0b030; --teens:#34c4b0; --adulto:#7aa2ff; --competitivo:#b88af0; --korpus:#f783ac;
   }
 }
 :root[data-theme="dark"]{
   --bg:#12161d; --surface:#1b212b; --surface2:#242c38; --text:#e8ecf2; --muted:#98a3b3; --line:#2f3947;
   --accent:#6ea0ff; --bad:#ff8a80; --bad-bg:#3a1f1f; --warn:#ffcc66; --warn-bg:#3a2f18; --ok:#7bd99a; --ok-bg:#183222;
-  --kids:#f0b030; --teens:#34c4b0; --adulto:#7aa2ff; --competitivo:#b88af0;
+  --kids:#f0b030; --teens:#34c4b0; --adulto:#7aa2ff; --competitivo:#b88af0; --korpus:#f783ac;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -70,7 +70,7 @@ label.f{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14p
 .blk .t{color:var(--muted)}
 .blk.dim{opacity:.18}
 .blk.bad{outline:2px solid var(--bad)}
-.cK{--c:var(--kids)} .cT{--c:var(--teens)} .cA{--c:var(--adulto)} .cC{--c:var(--competitivo)}
+.cK{--c:var(--kids)} .cT{--c:var(--teens)} .cA{--c:var(--adulto)} .cC{--c:var(--competitivo)} .cP{--c:var(--korpus)}
 
 /* tabelas */
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
@@ -140,8 +140,8 @@ dialog select{width:100%;margin-top:3px;font-size:15px}
 const DATA = /*__DATA__*/null;
 const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sab"];
 const DAY_LONG = {Seg:"Segunda",Ter:"Terça",Qua:"Quarta",Qui:"Quinta",Sex:"Sexta",Sab:"Sábado"};
-const CATS = {Kids:"cK",Teens:"cT",Adulto:"cA",Competitivo:"cC"};
-const CAT_VAR = {Kids:"var(--kids)",Teens:"var(--teens)",Adulto:"var(--adulto)",Competitivo:"var(--competitivo)"};
+const CATS = {Kids:"cK",Teens:"cT",Adulto:"cA",Competitivo:"cC",Korpus:"cP"};
+const CAT_VAR = {Kids:"var(--kids)",Teens:"var(--teens)",Adulto:"var(--adulto)",Competitivo:"var(--competitivo)",Korpus:"var(--korpus)"};
 const VIEWS = [["semana","Semana"],["turmas","Turmas"],["pessoas","Equipe"],["quadras","Quadras"]];
 const PPM = 2.5, GAPH = 22;
 
@@ -603,7 +603,7 @@ document.addEventListener("fullscreenchange", () => { if(!document.fullscreenEle
 window.addEventListener("resize", () => { if(state.fit) applyZoom(); });
 
 /* exportar como imagem / PDF */
-const CAT_HEX = {Kids:"#d98a00", Teens:"#0f9d8a", Adulto:"#3b6fd4", Competitivo:"#8a4fd0"};
+const CAT_HEX = {Kids:"#d98a00", Teens:"#0f9d8a", Adulto:"#3b6fd4", Competitivo:"#8a4fd0", Korpus:"#d6336c"};
 const mixWhite = (hex, a) => { const n = parseInt(hex.slice(1),16); return `rgb(${[n>>16, (n>>8)&255, n&255].map(c => Math.round(255 - (255-c)*a)).join(",")})`; };
 function drawWeekCanvas(){
   const {cs, showUnit, title} = state.lastWeek, L = weekLayout(cs), S = 2;
