@@ -39,7 +39,15 @@ def main():
             "slots": parse_horario(horario), "prof": prof, "aux": [a for a in (a1, a2) if a],
         })
     units = list(dict.fromkeys(c["unit"] for c in classes))
-    data = {"units": units, "classes": classes, "courts": COURTS}
+    ajustes = {}
+    if (ROOT / "ajustes.json").exists():
+        ajustes = json.loads((ROOT / "ajustes.json").read_text(encoding="utf-8"))
+    for c in classes:
+        a = ajustes.get("turmas", {}).get(f'{c["unit"]}|{c["name"]}')
+        if a:
+            c["prof"], c["aux"] = a["prof"], a["aux"]
+    data = {"units": units, "classes": classes, "courts": COURTS,
+            "funcoes": ajustes.get("funcoes", {}), "pessoas": ajustes.get("pessoas", [])}
     html = (ROOT / "template.html").read_text(encoding="utf-8")
     html = html.replace("/*__DATA__*/null", json.dumps(data, ensure_ascii=False))
     (ROOT / "index.html").write_text(html, encoding="utf-8")

@@ -93,6 +93,21 @@ details{margin-bottom:10px}
 summary{cursor:pointer;font-weight:700;padding:8px 0}
 .bold-bad{color:var(--bad);font-weight:700}
 .iss{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.blk{cursor:pointer}
+.ic{font-size:12px}
+.rolebtns{display:flex;gap:6px;margin:6px 0 2px;flex-wrap:wrap}
+.rolebtns .chip{padding:2px 9px;font-size:12.5px}
+.rolebtns .chip[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rolebtns .chip[aria-pressed="false"]{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);padding:18px;width:min(440px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin:0 0 2px}
+dialog label{display:block;margin:12px 0 0;font-size:13px;color:var(--muted)}
+dialog select{width:100%;margin-top:3px;font-size:15px}
+.dlgact{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:7px 13px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.edbtn{border:0;background:none;color:var(--accent);cursor:pointer;font-weight:600;padding:0}
 @media (max-width:600px){ h1{font-size:19px} }
 </style>
 </head>
@@ -105,9 +120,11 @@ summary{cursor:pointer;font-weight:700;padding:8px 0}
   <nav class="tabs" id="tabs" role="tablist"></nav>
   <div id="view"></div>
 </main>
+<dialog id="dlg"></dialog>
+<input type="file" id="imp" accept="application/json" hidden>
 
 <script>
-const DATA = {"units": ["Altiplano", "Bancários", "Bessa", "Cabo Branco"], "classes": [{"id": 1, "unit": "Altiplano", "name": "AP TQ Kids 1", "horario": "Ter/Qui 18:20 às 19:10", "cat": "Kids", "slots": [{"d": "Ter", "s": 1100, "e": 1150}, {"d": "Qui", "s": 1100, "e": 1150}], "prof": "Luis Henrique Monteiro de Oliveira", "aux": ["Ana Letícia Queiroz de Brito"]}, {"id": 2, "unit": "Altiplano", "name": "AP TQ Teens", "horario": "Ter/Qui 19:10 às 20:00", "cat": "Teens", "slots": [{"d": "Ter", "s": 1150, "e": 1200}, {"d": "Qui", "s": 1150, "e": 1200}], "prof": "Kyslon Angelo Brito de Sousa", "aux": ["Ana Letícia Queiroz de Brito", "Alisson Macedo"]}, {"id": 3, "unit": "Altiplano", "name": "AP TQ Adulto 2", "horario": "Ter/Qui 20:00 às 20:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1200, "e": 1250}, {"d": "Qui", "s": 1200, "e": 1250}], "prof": "Kyslon Angelo Brito de Sousa", "aux": ["Ana Letícia Queiroz de Brito", "Alisson Macedo"]}, {"id": 4, "unit": "Altiplano", "name": "Base AP TQ", "horario": "Ter/Qui 16:00 às 18:00", "cat": "Competitivo", "slots": [{"d": "Ter", "s": 960, "e": 1080}, {"d": "Qui", "s": 960, "e": 1080}], "prof": "Gilberto Rodrigues", "aux": ["Luis Henrique Monteiro de Oliveira"]}, {"id": 5, "unit": "Altiplano", "name": "Sabadão", "horario": "Sab 07:00 às 08:30", "cat": "Adulto", "slots": [{"d": "Sab", "s": 420, "e": 510}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 6, "unit": "Altiplano", "name": "AP TQ Adulto 1", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 7, "unit": "Altiplano", "name": "AP SE7 +90", "horario": "Seg/Qua 18:30 às 20:00 e Sex 18:00 às 21:00", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1110, "e": 1200}, {"d": "Qua", "s": 1110, "e": 1200}, {"d": "Sex", "s": 1080, "e": 1260}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 8, "unit": "Altiplano", "name": "AP TQ Adulto", "horario": "Ter/Qui 17:10 às 18:00", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1030, "e": 1080}, {"d": "Qui", "s": 1030, "e": 1080}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 9, "unit": "Bancários", "name": "BA SQS Kids", "horario": "Seg/Qua/Sex 18:00 às 18:50", "cat": "Kids", "slots": [{"d": "Seg", "s": 1080, "e": 1130}, {"d": "Qua", "s": 1080, "e": 1130}, {"d": "Sex", "s": 1080, "e": 1130}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 10, "unit": "Bancários", "name": "BA TQ Teens 1", "horario": "Ter/Qui 18:20 às 19:10", "cat": "Teens", "slots": [{"d": "Ter", "s": 1100, "e": 1150}, {"d": "Qui", "s": 1100, "e": 1150}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 11, "unit": "Bancários", "name": "BA TQ Teens 2", "horario": "Ter/Qui 19:10 às 20:00", "cat": "Teens", "slots": [{"d": "Ter", "s": 1150, "e": 1200}, {"d": "Qui", "s": 1150, "e": 1200}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 12, "unit": "Bancários", "name": "BA SQS Teens 2", "horario": "Seg/Qua/Sex 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Seg", "s": 1130, "e": 1180}, {"d": "Qua", "s": 1130, "e": 1180}, {"d": "Sex", "s": 1130, "e": 1180}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 13, "unit": "Bancários", "name": "BA TQ Adulto 1", "horario": "Ter/Qui 20:00 às 20:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1200, "e": 1250}, {"d": "Qui", "s": 1200, "e": 1250}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 14, "unit": "Bancários", "name": "BA SQS Adulto", "horario": "Seg/Qua/Sex 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1180, "e": 1230}, {"d": "Qua", "s": 1180, "e": 1230}, {"d": "Sex", "s": 1180, "e": 1230}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 15, "unit": "Bancários", "name": "BA TQ Adulto 2 (Avançado)", "horario": "Ter/Qui 20:50 às 21:40", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1250, "e": 1300}, {"d": "Qui", "s": 1250, "e": 1300}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 16, "unit": "Bancários", "name": "BA TQ kids", "horario": "Ter/Qui 17:30 às 18:20", "cat": "Kids", "slots": [{"d": "Ter", "s": 1050, "e": 1100}, {"d": "Qui", "s": 1050, "e": 1100}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 17, "unit": "Bancários", "name": "BA SQS Teens 1", "horario": "Seg/Qua/Sex 17:00 às 17:50", "cat": "Teens", "slots": [{"d": "Seg", "s": 1020, "e": 1070}, {"d": "Qua", "s": 1020, "e": 1070}, {"d": "Sex", "s": 1020, "e": 1070}], "prof": "Victor Manoel da Silva Gonçalves", "aux": []}, {"id": 18, "unit": "Bessa", "name": "BS TQ Kids", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Kids", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 19, "unit": "Bessa", "name": "BS TQ Teens", "horario": "Ter/Qui 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Ter", "s": 1130, "e": 1180}, {"d": "Qui", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 20, "unit": "Bessa", "name": "BS TQ Adulto", "horario": "Ter/Qui 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1180, "e": 1230}, {"d": "Qui", "s": 1180, "e": 1230}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 21, "unit": "Bessa", "name": "BS SQS Adulto 2", "horario": "Seg/Qua/Sex 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1180, "e": 1230}, {"d": "Qua", "s": 1180, "e": 1230}, {"d": "Sex", "s": 1180, "e": 1230}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 22, "unit": "Bessa", "name": "BS SQS Teens", "horario": "Seg/Qua/Sex 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Seg", "s": 1130, "e": 1180}, {"d": "Qua", "s": 1130, "e": 1180}, {"d": "Sex", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 23, "unit": "Bessa", "name": "BS SQS Adulto 1", "horario": "Seg/Qua/Sex 18:00 às 18:50", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1080, "e": 1130}, {"d": "Qua", "s": 1080, "e": 1130}, {"d": "Sex", "s": 1080, "e": 1130}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 24, "unit": "Bessa", "name": "Base BS TQ", "horario": "Ter/Qui 16:00 às 18:00", "cat": "Competitivo", "slots": [{"d": "Ter", "s": 960, "e": 1080}, {"d": "Qui", "s": 960, "e": 1080}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 25, "unit": "Bessa", "name": "BS SQ Adulto - Manhã", "horario": "Seg/Qua 06:00 às 07:00", "cat": "Adulto", "slots": [{"d": "Seg", "s": 360, "e": 420}, {"d": "Qua", "s": 360, "e": 420}], "prof": "Victor Manoel da Silva Gonçalves", "aux": []}, {"id": 26, "unit": "Bessa", "name": "BS SQ kids", "horario": "Seg/Qua 17:00 às 17:50", "cat": "Kids", "slots": [{"d": "Seg", "s": 1020, "e": 1070}, {"d": "Qua", "s": 1020, "e": 1070}], "prof": "Victor Manoel da Silva Gonçalves", "aux": []}, {"id": 27, "unit": "Cabo Branco", "name": "Base CB SQS", "horario": "Seg/Qua/Sex 15:00 às 17:00", "cat": "Competitivo", "slots": [{"d": "Seg", "s": 900, "e": 1020}, {"d": "Qua", "s": 900, "e": 1020}, {"d": "Sex", "s": 900, "e": 1020}], "prof": "Edilberto Fernandes", "aux": ["Luis Henrique Monteiro de Oliveira"]}, {"id": 28, "unit": "Cabo Branco", "name": "Base II CB SQS", "horario": "Seg/Qua/Sex 17:30 - 19:00", "cat": "Competitivo", "slots": [{"d": "Seg", "s": 1050, "e": 1140}, {"d": "Qua", "s": 1050, "e": 1140}, {"d": "Sex", "s": 1050, "e": 1140}], "prof": "Luis Henrique Monteiro de Oliveira", "aux": []}, {"id": 29, "unit": "Cabo Branco", "name": "Base III CB SQS", "horario": "Seg/Qua/Sex 19:00 - 20:15", "cat": "Competitivo", "slots": [{"d": "Seg", "s": 1140, "e": 1215}, {"d": "Qua", "s": 1140, "e": 1215}, {"d": "Sex", "s": 1140, "e": 1215}], "prof": "Luis Henrique Monteiro de Oliveira", "aux": []}, {"id": 30, "unit": "Cabo Branco", "name": "CB SQ Adulto 2", "horario": "Seg/Qua 18:30 às 19:20", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1110, "e": 1160}, {"d": "Qua", "s": 1110, "e": 1160}], "prof": "Gilberto Rodrigues", "aux": ["Alisson Macedo"]}, {"id": 31, "unit": "Cabo Branco", "name": "CB SQ Teens 1", "horario": "Seg/Qua 17:30 às 18:20", "cat": "Teens", "slots": [{"d": "Seg", "s": 1050, "e": 1100}, {"d": "Qua", "s": 1050, "e": 1100}], "prof": "Alisson Macedo", "aux": []}, {"id": 32, "unit": "Cabo Branco", "name": "CB SQ Teens 2", "horario": "Seg/Qua 18:20 às 19:10", "cat": "Teens", "slots": [{"d": "Seg", "s": 1100, "e": 1150}, {"d": "Qua", "s": 1100, "e": 1150}], "prof": "Alisson Macedo", "aux": []}, {"id": 33, "unit": "Cabo Branco", "name": "CB SQS SE7+90 - Adulto", "horario": "Seg/Qua 17:00 às 18:30 e Sex 17:00 as 19:00", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1020, "e": 1110}, {"d": "Qua", "s": 1020, "e": 1110}, {"d": "Sex", "s": 1020, "e": 1140}], "prof": "Gilberto Rodrigues", "aux": []}, {"id": 34, "unit": "Cabo Branco", "name": "CB TQ Adulto - Manhã", "horario": "Ter/Qui 06:00 às 07:00", "cat": "Adulto", "slots": [{"d": "Ter", "s": 360, "e": 420}, {"d": "Qui", "s": 360, "e": 420}], "prof": "Victor Manoel da Silva Gonçalves", "aux": ["Alisson Macedo"]}, {"id": 35, "unit": "Cabo Branco", "name": "CB TQ Adulto 1", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Edilberto Fernandes", "aux": ["Victória Rebeca Muniz Ataíde", "Gabriel Lopes"]}, {"id": 36, "unit": "Cabo Branco", "name": "CB TQ Adulto 2", "horario": "Ter/Qui 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1180, "e": 1230}, {"d": "Qui", "s": 1180, "e": 1230}], "prof": "Edilberto Fernandes", "aux": ["Victória Rebeca Muniz Ataíde", "Gabriel Lopes"]}, {"id": 37, "unit": "Cabo Branco", "name": "CB TQ Kids 1", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Kids", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Edilberto Fernandes", "aux": ["Victória Rebeca Muniz Ataíde", "Gabriel Lopes"]}, {"id": 38, "unit": "Cabo Branco", "name": "CB TQ Kids 2", "horario": "Ter/Qui 18:50 às 19:40", "cat": "Kids", "slots": [{"d": "Ter", "s": 1130, "e": 1180}, {"d": "Qui", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 39, "unit": "Cabo Branco", "name": "CB TQ Teens 1", "horario": "Ter/Qui 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Ter", "s": 1130, "e": 1180}, {"d": "Qui", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves", "Gabriel Lopes"]}, {"id": 40, "unit": "Cabo Branco", "name": "CB TQ Teens 2", "horario": "Ter/Qui 19:40 às 20:30", "cat": "Teens", "slots": [{"d": "Ter", "s": 1180, "e": 1230}, {"d": "Qui", "s": 1180, "e": 1230}], "prof": "Victor Manoel da Silva Gonçalves", "aux": ["Victor Manoel da Silva Gonçalves", "Gabriel Lopes"]}], "courts": {"Altiplano": 3, "Cabo Branco": 3, "Bancários": 2, "Bessa": 2}};
+const DATA = {"units": ["Altiplano", "Bancários", "Bessa", "Cabo Branco"], "classes": [{"id": 1, "unit": "Altiplano", "name": "AP TQ Kids 1", "horario": "Ter/Qui 18:20 às 19:10", "cat": "Kids", "slots": [{"d": "Ter", "s": 1100, "e": 1150}, {"d": "Qui", "s": 1100, "e": 1150}], "prof": "Luis Henrique Monteiro de Oliveira", "aux": ["Ana Letícia Queiroz de Brito"]}, {"id": 2, "unit": "Altiplano", "name": "AP TQ Teens", "horario": "Ter/Qui 19:10 às 20:00", "cat": "Teens", "slots": [{"d": "Ter", "s": 1150, "e": 1200}, {"d": "Qui", "s": 1150, "e": 1200}], "prof": "Kyslon Angelo Brito de Sousa", "aux": ["Ana Letícia Queiroz de Brito", "Alisson Macedo"]}, {"id": 3, "unit": "Altiplano", "name": "AP TQ Adulto 2", "horario": "Ter/Qui 20:00 às 20:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1200, "e": 1250}, {"d": "Qui", "s": 1200, "e": 1250}], "prof": "Kyslon Angelo Brito de Sousa", "aux": ["Ana Letícia Queiroz de Brito", "Alisson Macedo"]}, {"id": 4, "unit": "Altiplano", "name": "Base AP TQ", "horario": "Ter/Qui 16:00 às 18:00", "cat": "Competitivo", "slots": [{"d": "Ter", "s": 960, "e": 1080}, {"d": "Qui", "s": 960, "e": 1080}], "prof": "Gilberto Rodrigues", "aux": ["Luis Henrique Monteiro de Oliveira"]}, {"id": 5, "unit": "Altiplano", "name": "Sabadão", "horario": "Sab 07:00 às 08:30", "cat": "Adulto", "slots": [{"d": "Sab", "s": 420, "e": 510}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 6, "unit": "Altiplano", "name": "AP TQ Adulto 1", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 7, "unit": "Altiplano", "name": "AP SE7 +90", "horario": "Seg/Qua 18:30 às 20:00 e Sex 18:00 às 21:00", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1110, "e": 1200}, {"d": "Qua", "s": 1110, "e": 1200}, {"d": "Sex", "s": 1080, "e": 1260}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 8, "unit": "Altiplano", "name": "AP TQ Adulto", "horario": "Ter/Qui 17:10 às 18:00", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1030, "e": 1080}, {"d": "Qui", "s": 1030, "e": 1080}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 9, "unit": "Bancários", "name": "BA SQS Kids", "horario": "Seg/Qua/Sex 18:00 às 18:50", "cat": "Kids", "slots": [{"d": "Seg", "s": 1080, "e": 1130}, {"d": "Qua", "s": 1080, "e": 1130}, {"d": "Sex", "s": 1080, "e": 1130}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 10, "unit": "Bancários", "name": "BA TQ Teens 1", "horario": "Ter/Qui 18:20 às 19:10", "cat": "Teens", "slots": [{"d": "Ter", "s": 1100, "e": 1150}, {"d": "Qui", "s": 1100, "e": 1150}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 11, "unit": "Bancários", "name": "BA TQ Teens 2", "horario": "Ter/Qui 19:10 às 20:00", "cat": "Teens", "slots": [{"d": "Ter", "s": 1150, "e": 1200}, {"d": "Qui", "s": 1150, "e": 1200}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 12, "unit": "Bancários", "name": "BA SQS Teens 2", "horario": "Seg/Qua/Sex 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Seg", "s": 1130, "e": 1180}, {"d": "Qua", "s": 1130, "e": 1180}, {"d": "Sex", "s": 1130, "e": 1180}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 13, "unit": "Bancários", "name": "BA TQ Adulto 1", "horario": "Ter/Qui 20:00 às 20:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1200, "e": 1250}, {"d": "Qui", "s": 1200, "e": 1250}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 14, "unit": "Bancários", "name": "BA SQS Adulto", "horario": "Seg/Qua/Sex 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1180, "e": 1230}, {"d": "Qua", "s": 1180, "e": 1230}, {"d": "Sex", "s": 1180, "e": 1230}], "prof": "Amanda Nóbrega Barros Gomes", "aux": ["Sylas Jonatas"]}, {"id": 15, "unit": "Bancários", "name": "BA TQ Adulto 2 (Avançado)", "horario": "Ter/Qui 20:50 às 21:40", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1250, "e": 1300}, {"d": "Qui", "s": 1250, "e": 1300}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 16, "unit": "Bancários", "name": "BA TQ kids", "horario": "Ter/Qui 17:30 às 18:20", "cat": "Kids", "slots": [{"d": "Ter", "s": 1050, "e": 1100}, {"d": "Qui", "s": 1050, "e": 1100}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 17, "unit": "Bancários", "name": "BA SQS Teens 1", "horario": "Seg/Qua/Sex 17:00 às 17:50", "cat": "Teens", "slots": [{"d": "Seg", "s": 1020, "e": 1070}, {"d": "Qua", "s": 1020, "e": 1070}, {"d": "Sex", "s": 1020, "e": 1070}], "prof": "Victor Manoel da Silva Gonçalves", "aux": []}, {"id": 18, "unit": "Bessa", "name": "BS TQ Kids", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Kids", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 19, "unit": "Bessa", "name": "BS TQ Teens", "horario": "Ter/Qui 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Ter", "s": 1130, "e": 1180}, {"d": "Qui", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 20, "unit": "Bessa", "name": "BS TQ Adulto", "horario": "Ter/Qui 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1180, "e": 1230}, {"d": "Qui", "s": 1180, "e": 1230}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 21, "unit": "Bessa", "name": "BS SQS Adulto 2", "horario": "Seg/Qua/Sex 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1180, "e": 1230}, {"d": "Qua", "s": 1180, "e": 1230}, {"d": "Sex", "s": 1180, "e": 1230}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 22, "unit": "Bessa", "name": "BS SQS Teens", "horario": "Seg/Qua/Sex 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Seg", "s": 1130, "e": 1180}, {"d": "Qua", "s": 1130, "e": 1180}, {"d": "Sex", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 23, "unit": "Bessa", "name": "BS SQS Adulto 1", "horario": "Seg/Qua/Sex 18:00 às 18:50", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1080, "e": 1130}, {"d": "Qua", "s": 1080, "e": 1130}, {"d": "Sex", "s": 1080, "e": 1130}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 24, "unit": "Bessa", "name": "Base BS TQ", "horario": "Ter/Qui 16:00 às 18:00", "cat": "Competitivo", "slots": [{"d": "Ter", "s": 960, "e": 1080}, {"d": "Qui", "s": 960, "e": 1080}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 25, "unit": "Bessa", "name": "BS SQ Adulto - Manhã", "horario": "Seg/Qua 06:00 às 07:00", "cat": "Adulto", "slots": [{"d": "Seg", "s": 360, "e": 420}, {"d": "Qua", "s": 360, "e": 420}], "prof": "Victor Manoel da Silva Gonçalves", "aux": []}, {"id": 26, "unit": "Bessa", "name": "BS SQ kids", "horario": "Seg/Qua 17:00 às 17:50", "cat": "Kids", "slots": [{"d": "Seg", "s": 1020, "e": 1070}, {"d": "Qua", "s": 1020, "e": 1070}], "prof": "Victor Manoel da Silva Gonçalves", "aux": []}, {"id": 27, "unit": "Cabo Branco", "name": "Base CB SQS", "horario": "Seg/Qua/Sex 15:00 às 17:00", "cat": "Competitivo", "slots": [{"d": "Seg", "s": 900, "e": 1020}, {"d": "Qua", "s": 900, "e": 1020}, {"d": "Sex", "s": 900, "e": 1020}], "prof": "Edilberto Fernandes", "aux": ["Luis Henrique Monteiro de Oliveira"]}, {"id": 28, "unit": "Cabo Branco", "name": "Base II CB SQS", "horario": "Seg/Qua/Sex 17:30 - 19:00", "cat": "Competitivo", "slots": [{"d": "Seg", "s": 1050, "e": 1140}, {"d": "Qua", "s": 1050, "e": 1140}, {"d": "Sex", "s": 1050, "e": 1140}], "prof": "Luis Henrique Monteiro de Oliveira", "aux": []}, {"id": 29, "unit": "Cabo Branco", "name": "Base III CB SQS", "horario": "Seg/Qua/Sex 19:00 - 20:15", "cat": "Competitivo", "slots": [{"d": "Seg", "s": 1140, "e": 1215}, {"d": "Qua", "s": 1140, "e": 1215}, {"d": "Sex", "s": 1140, "e": 1215}], "prof": "Luis Henrique Monteiro de Oliveira", "aux": []}, {"id": 30, "unit": "Cabo Branco", "name": "CB SQ Adulto 2", "horario": "Seg/Qua 18:30 às 19:20", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1110, "e": 1160}, {"d": "Qua", "s": 1110, "e": 1160}], "prof": "Gilberto Rodrigues", "aux": ["Alisson Macedo"]}, {"id": 31, "unit": "Cabo Branco", "name": "CB SQ Teens 1", "horario": "Seg/Qua 17:30 às 18:20", "cat": "Teens", "slots": [{"d": "Seg", "s": 1050, "e": 1100}, {"d": "Qua", "s": 1050, "e": 1100}], "prof": "Alisson Macedo", "aux": []}, {"id": 32, "unit": "Cabo Branco", "name": "CB SQ Teens 2", "horario": "Seg/Qua 18:20 às 19:10", "cat": "Teens", "slots": [{"d": "Seg", "s": 1100, "e": 1150}, {"d": "Qua", "s": 1100, "e": 1150}], "prof": "Alisson Macedo", "aux": []}, {"id": 33, "unit": "Cabo Branco", "name": "CB SQS SE7+90 - Adulto", "horario": "Seg/Qua 17:00 às 18:30 e Sex 17:00 as 19:00", "cat": "Adulto", "slots": [{"d": "Seg", "s": 1020, "e": 1110}, {"d": "Qua", "s": 1020, "e": 1110}, {"d": "Sex", "s": 1020, "e": 1140}], "prof": "Gilberto Rodrigues", "aux": []}, {"id": 34, "unit": "Cabo Branco", "name": "CB TQ Adulto - Manhã", "horario": "Ter/Qui 06:00 às 07:00", "cat": "Adulto", "slots": [{"d": "Ter", "s": 360, "e": 420}, {"d": "Qui", "s": 360, "e": 420}], "prof": "Victor Manoel da Silva Gonçalves", "aux": ["Alisson Macedo"]}, {"id": 35, "unit": "Cabo Branco", "name": "CB TQ Adulto 1", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Edilberto Fernandes", "aux": ["Victória Rebeca Muniz Ataíde", "Gabriel Lopes"]}, {"id": 36, "unit": "Cabo Branco", "name": "CB TQ Adulto 2", "horario": "Ter/Qui 19:40 às 20:30", "cat": "Adulto", "slots": [{"d": "Ter", "s": 1180, "e": 1230}, {"d": "Qui", "s": 1180, "e": 1230}], "prof": "Edilberto Fernandes", "aux": ["Victória Rebeca Muniz Ataíde", "Gabriel Lopes"]}, {"id": 37, "unit": "Cabo Branco", "name": "CB TQ Kids 1", "horario": "Ter/Qui 18:00 às 18:50", "cat": "Kids", "slots": [{"d": "Ter", "s": 1080, "e": 1130}, {"d": "Qui", "s": 1080, "e": 1130}], "prof": "Edilberto Fernandes", "aux": ["Victória Rebeca Muniz Ataíde", "Gabriel Lopes"]}, {"id": 38, "unit": "Cabo Branco", "name": "CB TQ Kids 2", "horario": "Ter/Qui 18:50 às 19:40", "cat": "Kids", "slots": [{"d": "Ter", "s": 1130, "e": 1180}, {"d": "Qui", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves"]}, {"id": 39, "unit": "Cabo Branco", "name": "CB TQ Teens 1", "horario": "Ter/Qui 18:50 às 19:40", "cat": "Teens", "slots": [{"d": "Ter", "s": 1130, "e": 1180}, {"d": "Qui", "s": 1130, "e": 1180}], "prof": "Glauber Grangeiro de Lima", "aux": ["Victor Manoel da Silva Gonçalves", "Gabriel Lopes"]}, {"id": 40, "unit": "Cabo Branco", "name": "CB TQ Teens 2", "horario": "Ter/Qui 19:40 às 20:30", "cat": "Teens", "slots": [{"d": "Ter", "s": 1180, "e": 1230}, {"d": "Qui", "s": 1180, "e": 1230}], "prof": "Victor Manoel da Silva Gonçalves", "aux": ["Victor Manoel da Silva Gonçalves", "Gabriel Lopes"]}], "courts": {"Altiplano": 3, "Cabo Branco": 3, "Bancários": 2, "Bessa": 2}, "funcoes": {}, "pessoas": []};
 const DAYS = ["Seg","Ter","Qua","Qui","Sex","Sab"];
 const DAY_LONG = {Seg:"Segunda",Ter:"Terça",Qua:"Quarta",Qui:"Quinta",Sex:"Sexta",Sab:"Sábado"};
 const CATS = {Kids:"cK",Teens:"cT",Adulto:"cA",Competitivo:"cC"};
@@ -121,8 +138,27 @@ const store = {
 };
 const state = {
   tab: store.get("tab","geral"), view: store.get("view","semana"), person: "", cats: new Set(Object.keys(CATS)),
-  courts: {...DATA.courts, ...store.get("quadras", {})}
+  courts: {...DATA.courts, ...store.get("quadras", {})},
+  edits: {turmas:{}, funcoes:{}, pessoas:[], ...store.get("ajustes", {})}
 };
+const ROLES = {prof:{icon:"🎓", label:"Professor (formado)"}, est:{icon:"🌱", label:"Estagiário"}};
+const ckey = c => c.unit+"|"+c.name;
+const BASE = Object.fromEntries(DATA.classes.map(c => [c.id, {prof:c.prof, aux:[...c.aux]}]));
+function applyEdits(){
+  for(const c of DATA.classes){
+    const e = state.edits.turmas[ckey(c)], b = BASE[c.id];
+    c.prof = e ? e.prof : b.prof; c.aux = e ? [...e.aux] : [...b.aux];
+  }
+}
+const roleOf = n => state.edits.funcoes[n] || (DATA.funcoes||{})[n] || "";
+const ic = n => roleOf(n) ? `<span class="ic" title="${ROLES[roleOf(n)].label}">${ROLES[roleOf(n)].icon}</span> ` : "";
+const staffNames = () => [...new Set([
+  ...Object.values(BASE).flatMap(b => [b.prof, ...b.aux]),
+  ...DATA.classes.flatMap(c => [c.prof, ...c.aux]),
+  ...Object.keys(DATA.funcoes||{}), ...Object.keys(state.edits.funcoes), ...(DATA.pessoas||[]), ...state.edits.pessoas
+])].sort((a,b) => a.localeCompare(b,"pt"));
+function saveEdits(){ store.set("ajustes", state.edits); }
+applyEdits();
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hm = m => String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
@@ -164,7 +200,8 @@ function computeIssues(){
   }
   for(const c of DATA.classes) if(c.aux.includes(c.prof)) mesma.push(c);
   return {dup:[...dup.values()], desl:[...desl.values()], mesma,
-          semAux: DATA.classes.filter(c => !c.aux.length)};
+          semAux: DATA.classes.filter(c => !c.aux.length),
+          estResp: DATA.classes.filter(c => roleOf(c.prof)==="est")};
 }
 function dupClusters(){
   const out = [];
@@ -192,9 +229,12 @@ function dupClusters(){
   }
   return out;
 }
-const ISSUES = computeIssues();
-const CLUSTERS = dupClusters();
-const issueClassIds = new Set(ISSUES.dup.flatMap(e => [e.x.c.id, e.y.c.id]));
+let ISSUES, CLUSTERS, issueClassIds;
+function recompute(){
+  ISSUES = computeIssues(); CLUSTERS = dupClusters();
+  issueClassIds = new Set(ISSUES.dup.flatMap(e => [e.x.c.id, e.y.c.id]));
+}
+recompute();
 
 /* ---------- navegação ---------- */
 function renderTabs(){
@@ -204,6 +244,7 @@ function renderTabs(){
       k==="conflitos" ? `<span class="badge">${CLUSTERS.length}</span>` : ""}</button>`).join("");
 }
 function render(){
+  recompute();
   renderTabs();
   const v = document.getElementById("view");
   if(state.tab==="geral") v.innerHTML = overviewView();
@@ -213,6 +254,24 @@ function render(){
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if(!t) return;
   const a = t.dataset.act, v = t.dataset.v;
+  if(a==="edit"){ openEditor(+v); return; }
+  if(a==="close"){ document.getElementById("dlg").close(); return; }
+  if(a==="save"){ saveEditor(+v); return; }
+  if(a==="restore"){ restoreClass(+v); return; }
+  if(a==="role"){
+    const n = t.dataset.n;
+    if(roleOf(n)===v) state.edits.funcoes[n] = ""; else state.edits.funcoes[n] = v;
+    if(!state.edits.funcoes[n] && !(DATA.funcoes||{})[n]) delete state.edits.funcoes[n];
+    saveEdits(); render(); return;
+  }
+  if(a==="export"){ exportEdits(); return; }
+  if(a==="import"){ document.getElementById("imp").click(); return; }
+  if(a==="reset"){
+    if(confirm("Descartar todas as alterações feitas neste navegador (professores, auxiliares e funções)?")){
+      state.edits = {turmas:{}, funcoes:{}, pessoas:[]}; saveEdits(); applyEdits(); render();
+    }
+    return;
+  }
   if(a==="tab"){ state.tab = v; store.set("tab", v); }
   else if(a==="view"){ state.view = v; store.set("view", v); }
   else if(a==="cat"){ state.cats.has(v) ? state.cats.delete(v) : state.cats.add(v); }
@@ -227,6 +286,85 @@ document.addEventListener("change", e => {
     if(n>0) state.courts[state.tab] = n; else delete state.courts[state.tab];
     store.set("quadras", state.courts); render();
   }
+});
+
+/* ---------- edição de professor/auxiliares ---------- */
+function otherClassesOf(c, name){
+  if(!name) return [];
+  return DATA.classes.filter(o => o.id!==c.id && people(o).some(p => p.n===name) &&
+    o.slots.some(a => c.slots.some(b => a.d===b.d && overlap(a,b))));
+}
+function nameSelect(id, sel, allowEmpty){
+  return `<select id="${id}">${allowEmpty ? '<option value="">— sem auxiliar —</option>' : ""}${staffNames().map(n =>
+    `<option value="${esc(n)}"${n===sel?" selected":""}>${roleOf(n) ? ROLES[roleOf(n)].icon+" " : ""}${esc(n)}</option>`).join("")}<option value="__new__">+ Nova pessoa…</option></select>`;
+}
+function openEditor(id){
+  const c = DATA.classes.find(x => x.id===id), dlg = document.getElementById("dlg");
+  dlg.innerHTML = `<h3>${esc(c.name)}</h3><div class="muted small">${esc(c.unit)} · ${esc(fmtSlots(c))}</div>
+    <label>Professor responsável ${nameSelect("ed-prof", c.prof, false)}</label>
+    <label>Auxiliar 1 ${nameSelect("ed-a1", c.aux[0]||"", true)}</label>
+    <label>Auxiliar 2 ${nameSelect("ed-a2", c.aux[1]||"", true)}</label>
+    <div id="ed-warn" style="margin-top:12px"></div>
+    <div class="dlgact"><button class="btn pri" data-act="save" data-v="${id}">Salvar</button>
+      <button class="btn" data-act="restore" data-v="${id}">Voltar ao original</button>
+      <button class="btn" data-act="close">Cancelar</button></div>`;
+  dlg.dataset.id = id; dlg.showModal(); checkEditor();
+}
+function editorValues(){
+  return ["ed-prof","ed-a1","ed-a2"].map(i => document.getElementById(i).value);
+}
+function checkEditor(){
+  const c = DATA.classes.find(x => x.id===+document.getElementById("dlg").dataset.id);
+  const [p,a1,a2] = editorValues(), out = [];
+  for(const [n,r] of [[p,"responsável"],[a1,"auxiliar 1"],[a2,"auxiliar 2"]]){
+    const o = otherClassesOf(c, n);
+    if(o.length) out.push(`<div class="note bad" style="margin:0 0 6px"><b>${esc(first(n))}</b> (${r}) já está em: ${o.map(x => esc(x.name)+" ("+esc(x.unit)+")").join(", ")} no mesmo horário.</div>`);
+  }
+  if(p && (p===a1 || p===a2 || (a1 && a1===a2))) out.push('<div class="note bad" style="margin:0 0 6px">A mesma pessoa foi escolhida duas vezes nesta turma.</div>');
+  if(roleOf(p)==="est") out.push('<div class="note info" style="margin:0 0 6px">🌱 Estagiário como responsável pela turma.</div>');
+  document.getElementById("ed-warn").innerHTML = out.join("") || '<div class="note ok" style="margin:0">Sem conflitos de horário.</div>';
+}
+document.addEventListener("change", e => {
+  const t = e.target;
+  if(!t.closest || !t.closest("#dlg")) return;
+  if(t.value==="__new__"){
+    const n = (prompt("Nome completo da nova pessoa:")||"").trim().replace(/\s+/g," ");
+    if(n){ if(!staffNames().includes(n)){ state.edits.pessoas.push(n); saveEdits(); }
+      const ids = ["ed-prof","ed-a1","ed-a2"], vals = editorValues().map((v,i) => ids[i]===t.id ? n : v);
+      const c = DATA.classes.find(x => x.id===+document.getElementById("dlg").dataset.id);
+      ids.forEach((i,k) => { document.getElementById(i).outerHTML = nameSelect(i, vals[k]==="__new__" ? "" : vals[k], i!=="ed-prof"); });
+    } else { t.value = t.dataset.prev || ""; }
+  }
+  checkEditor();
+});
+function saveEditor(id){
+  const c = DATA.classes.find(x => x.id===id), [p,a1,a2] = editorValues();
+  const aux = [a1,a2].filter(Boolean);
+  const b = BASE[id];
+  if(p===b.prof && aux.join("|")===b.aux.join("|")) delete state.edits.turmas[ckey(c)];
+  else state.edits.turmas[ckey(c)] = {prof:p, aux};
+  saveEdits(); applyEdits(); document.getElementById("dlg").close(); render();
+}
+function restoreClass(id){
+  const c = DATA.classes.find(x => x.id===id);
+  delete state.edits.turmas[ckey(c)]; saveEdits(); applyEdits(); document.getElementById("dlg").close(); render();
+}
+function exportEdits(){
+  const out = {turmas: state.edits.turmas, funcoes: state.edits.funcoes, pessoas: state.edits.pessoas};
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out,null,2)], {type:"application/json"}));
+  a.download = "ajustes.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+document.getElementById("imp").addEventListener("change", e => {
+  const f = e.target.files[0]; if(!f) return;
+  f.text().then(txt => {
+    try{
+      const j = JSON.parse(txt);
+      state.edits = {turmas:j.turmas||{}, funcoes:j.funcoes||{}, pessoas:j.pessoas||[]};
+      saveEdits(); applyEdits(); render();
+    }catch(err){ alert("Arquivo inválido."); }
+    e.target.value = "";
+  });
 });
 
 /* ---------- visão da unidade ---------- */
@@ -298,11 +436,11 @@ function weekView(cs, showUnit){
         const top = Y(s.s), h = Yend(s.e) - top, w = 100/s.n;
         const dim = (showUnit || visible(s.c)) ? "" : " dim";
         const bad = issueClassIds.has(s.c.id) ? " bad" : "";
-        const aux = s.c.aux.map(first).join(", ");
-        const tip = `${s.c.name} (${s.c.cat})\n${hm(s.s)}–${hm(s.e)}\nProf: ${s.c.prof}${s.c.aux.length ? "\nAux: "+s.c.aux.join(", ") : ""}${bad ? "\n⚠ pessoa em outra turma no mesmo horário" : ""}`;
-        return `<div class="blk ${CATS[s.c.cat]||""}${dim}${bad}" title="${esc(tip)}" style="top:${top}px;height:${h-2}px;left:calc(${s.lane*w}% + 2px);width:calc(${w}% - 4px)">
+        const aux = s.c.aux.map(n => ic(n)+esc(first(n))).join(", ");
+        const tip = `${s.c.name} (${s.c.cat})\n${hm(s.s)}–${hm(s.e)}\nClique para editar\nProf: ${s.c.prof}${s.c.aux.length ? "\nAux: "+s.c.aux.join(", ") : ""}${bad ? "\n⚠ pessoa em outra turma no mesmo horário" : ""}`;
+        return `<div class="blk ${CATS[s.c.cat]||""}${dim}${bad}" data-act="edit" data-v="${s.c.id}" title="${esc(tip)}" style="top:${top}px;height:${h-2}px;left:calc(${s.lane*w}% + 2px);width:calc(${w}% - 4px)">
           <b>${esc(s.c.name)}</b><span class="t">${showUnit ? esc(s.c.unit)+" · " : ""}${hm(s.s)}–${hm(s.e)}</span><br>
-          <span>${esc(first(s.c.prof))}${aux ? " · aux: "+esc(aux) : ""}</span></div>`; }).join("")}
+          <span>${ic(s.c.prof)}${esc(first(s.c.prof))}${aux ? " · aux: "+aux : ""}</span></div>`; }).join("")}
     </div>`).join("");
   return `<div class="wk"><div class="wkgrid" style="grid-template-columns:${cols}">
     <div class="dh" style="border-left:0"></div>${heads}${gut}${body}</div></div>
@@ -313,10 +451,11 @@ function weekView(cs, showUnit){
 function classTable(cs, showUnit){
   const order = Object.keys(CATS);
   const rows = [...cs].sort((a,b) => order.indexOf(a.cat)-order.indexOf(b.cat) || a.slots[0].s - b.slots[0].s);
-  return `<div class="tw"><table><thead><tr>${showUnit?"<th>Unidade</th>":""}<th>Turma</th><th>Categoria</th><th>Dias e horário</th><th>Professor</th><th>Auxiliares</th></tr></thead><tbody>
+  return `<div class="tw"><table><thead><tr>${showUnit?"<th>Unidade</th>":""}<th>Turma</th><th>Categoria</th><th>Dias e horário</th><th>Professor responsável</th><th>Auxiliares</th><th></th></tr></thead><tbody>
     ${rows.map(c => `<tr>${showUnit?`<td>${esc(c.unit)}</td>`:""}<td><b>${esc(c.name)}</b></td>
       <td><span class="tag ${CATS[c.cat]||""}">${esc(c.cat)}</span></td><td>${esc(fmtSlots(c))}</td>
-      <td>${esc(c.prof)}</td><td>${c.aux.length ? c.aux.map(esc).join("<br>") : '<span class="muted">—</span>'}</td></tr>`).join("")}
+      <td>${ic(c.prof)}${esc(c.prof)}</td><td>${c.aux.length ? c.aux.map(n => ic(n)+esc(n)).join("<br>") : '<span class="muted">—</span>'}</td>
+      <td><button class="edbtn" data-act="edit" data-v="${c.id}">✏️ Editar</button></td></tr>`).join("")}
   </tbody></table></div>`;
 }
 
@@ -333,9 +472,10 @@ function peopleView(cs, showUnit){
     const items = [...e.items.values()].sort((a,b) => a.c.unit.localeCompare(b.c.unit) || a.c.slots[0].s - b.c.slots[0].s);
     const mins = items.reduce((t,i) => t + i.c.slots.reduce((x,s) => x + s.e - s.s, 0), 0);
     const np = items.filter(i => i.roles.has("Prof")).length, na = items.length - np;
-    return `<div class="card pcard"><h3>${esc(e.n)}</h3>
-      <div class="muted small">${np} como professor · ${na} como auxiliar · ${(mins/60).toFixed(1).replace(".",",")} h/semana${e.units.size>1 ? " · "+[...e.units].map(esc).join(", ") : ""}</div>
-      <ul>${items.map(i => `<li><b>${esc(i.c.name)}</b>${[...i.roles].map(r => `<span class="role ${r==="Prof"?"p":""}">${r}</span>`).join("")}<br>
+    return `<div class="card pcard"><h3>${ic(e.n)}${esc(e.n)}</h3>
+      <div class="rolebtns">${Object.entries(ROLES).map(([k,r]) => `<button class="chip" data-act="role" data-n="${esc(e.n)}" data-v="${k}" aria-pressed="${roleOf(e.n)===k}">${r.icon} ${r.label}</button>`).join("")}</div>
+      <div class="muted small">${np} como responsável · ${na} como auxiliar · ${(mins/60).toFixed(1).replace(".",",")} h/semana${e.units.size>1 ? " · "+[...e.units].map(esc).join(", ") : ""}</div>
+      <ul>${items.map(i => `<li><b>${esc(i.c.name)}</b>${[...i.roles].map(r => `<span class="role ${r==="Prof"?"p":""}">${r==="Prof"?"Resp.":"Aux."}</span>`).join("")}<br>
         <span class="muted">${showUnit ? esc(i.c.unit)+" · " : ""}${esc(fmtSlots(i.c))}</span></li>`).join("")}</ul></div>`;
   }).join("")}</div>`;
 }
@@ -374,6 +514,16 @@ function courtsView(u, cs){
   </div></div>`;
 }
 
+function rolesSummary(){
+  const names = staffNames();
+  const groups = {prof:[], est:[], "":[]};
+  names.forEach(n => groups[roleOf(n)].push(n));
+  const li = l => l.length ? l.map(n => esc(n)).join(", ") : "—";
+  return `<div class="card" style="margin-bottom:12px"><div><b>🎓 Professores formados (${groups.prof.length}):</b> <span class="muted">${li(groups.prof)}</span></div>
+    <div style="margin-top:4px"><b>🌱 Estagiários (${groups.est.length}):</b> <span class="muted">${li(groups.est)}</span></div>
+    ${groups[""].length ? `<div class="note info" style="margin:8px 0 0">Função ainda não definida para <b>${groups[""].length}</b> pessoa(s): ${li(groups[""])}. Marque nos cartões abaixo.</div>` : ""}</div>`;
+}
+
 /* ---------- visão geral ---------- */
 function overviewView(){
   const cards = DATA.units.map(u => {
@@ -390,7 +540,10 @@ function overviewView(){
   return `<div class="grid3" style="margin-bottom:16px">${cards}</div>
     ${nIss ? `<div class="note bad"><b>${CLUSTERS.length}</b> horários em que uma pessoa está em duas ou mais turmas ao mesmo tempo. <a href="#" data-act="tab" data-v="conflitos">Ver conflitos</a></div>` : ""}
     <h2 style="font-size:17px">Todas as turmas</h2>${classTable(DATA.classes, true)}
-    <h2 style="font-size:17px;margin-top:20px">Equipe (todas as unidades)</h2>${peopleView(DATA.classes, true)}`;
+    <h2 style="font-size:17px;margin-top:20px">Equipe (todas as unidades)</h2>${rolesSummary()}${peopleView(DATA.classes, true)}
+    <div class="card" style="margin-top:20px"><h3>Alterações</h3>
+      <p class="muted small">Professores, auxiliares e funções editados ficam salvos <b>neste navegador</b>. Para guardar ou levar para outro aparelho, baixe o arquivo e carregue-o depois; para valer para todos, envie o arquivo <code>ajustes.json</code> ao repositório.</p>
+      <div class="dlgact"><button class="btn" data-act="export">Baixar alterações</button><button class="btn" data-act="import">Carregar alterações</button><button class="btn" data-act="reset">Descartar alterações</button></div></div>`;
 }
 
 /* ---------- conflitos ---------- */
@@ -398,7 +551,7 @@ function issuesView(){
   const who = state.issuePerson || "Glauber Grangeiro de Lima";
   const names = [...new Set(CLUSTERS.map(e => e.n))];
   const allNames = [...new Set(DATA.classes.flatMap(c => people(c).map(p => p.n)))].sort((a,b)=>a.localeCompare(b,"pt"));
-  const fmt = it => `<li><b>${esc(it.c.name)}</b> <span class="muted">${esc(it.c.unit)} · ${hm(it.s)}–${hm(it.e)} · ${it.r==="Prof"?"professor":"auxiliar"}</span></li>`;
+  const fmt = it => `<li><b>${esc(it.c.name)}</b> <span class="muted">${esc(it.c.unit)} · ${hm(it.s)}–${hm(it.e)} · ${it.r==="Prof"?"responsável":"auxiliar"}</span></li>`;
   const groupBy = {};
   CLUSTERS.forEach(e => (groupBy[e.n] = groupBy[e.n] || []).push(e));
   const dupHtml = Object.entries(groupBy).sort((a,b) => b[1].length-a[1].length).map(([n, list]) =>
@@ -421,6 +574,7 @@ function issuesView(){
   <h2 style="font-size:17px;margin-top:20px">Outros avisos</h2>
   <div class="card">
   ${sec("Troca de unidade sem intervalo (menos de 30 min)", ISSUES.desl, line, false)}
+  ${sec("Estagiário como responsável pela turma", ISSUES.estResp, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}): 🌱 ${esc(c.prof)}</div>`, true)}
   ${sec("Professor também listado como auxiliar na mesma turma", ISSUES.mesma, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}): ${esc(c.prof)}</div>`, true)}
   ${sec("Turmas sem auxiliar", ISSUES.semAux, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}) · ${esc(fmtSlots(c))} · prof. ${esc(first(c.prof))}</div>`, false)}
   </div>`;

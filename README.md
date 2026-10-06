@@ -7,6 +7,12 @@ Planner por unidade (Altiplano, Bancários, Bessa e Cabo Branco) gerado a partir
 - **Conflitos**: pessoas em duas turmas ao mesmo tempo, troca de unidade sem intervalo, turmas sem auxiliar.
 - A quantidade de quadras de cada unidade é digitada na própria página (fica salva no navegador).
 
+## Editar equipe e funções
+
+- Clique em uma turma (na grade ou em **Turmas → Editar**) para trocar o professor responsável e os auxiliares. O editor avisa se a pessoa já estiver em outra turma no mesmo horário.
+- Em **Equipe**, marque cada pessoa como 🎓 Professor (formado) ou 🌱 Estagiário. A **Visão geral** lista os formados e os estagiários.
+- As alterações ficam salvas no navegador. Em **Visão geral → Alterações** dá para baixar o `ajustes.json`. Colocando esse arquivo na raiz do repositório e rodando `python3 build.py`, as alterações passam a valer para todos.
+
 ## Atualizar a planilha
 
 Edite `horario_colaborador.xlsx` (aba `Plan1`) e rode:
