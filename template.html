@@ -121,7 +121,7 @@ const store = {
 };
 const state = {
   tab: store.get("tab","geral"), view: store.get("view","semana"), person: "", cats: new Set(Object.keys(CATS)),
-  courts: store.get("quadras", {})
+  courts: {...DATA.courts, ...store.get("quadras", {})}
 };
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));

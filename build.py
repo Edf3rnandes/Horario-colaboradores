@@ -6,6 +6,7 @@ import openpyxl
 
 ROOT = Path(__file__).parent
 XLSX = ROOT / "horario_colaborador.xlsx"
+COURTS = {"Altiplano": 3, "Cabo Branco": 3, "Bancários": 2, "Bessa": 2}
 DAYS = {"seg": "Seg", "ter": "Ter", "qua": "Qua", "qui": "Qui", "sex": "Sex", "sab": "Sab", "sáb": "Sab"}
 PART = re.compile(r"^\s*([A-Za-zçáã/]+)\s+(\d{1,2}):(\d{2})\s*(?:às|as|-|–)\s*(\d{1,2}):(\d{2})\s*$", re.I)
 
@@ -38,7 +39,7 @@ def main():
             "slots": parse_horario(horario), "prof": prof, "aux": [a for a in (a1, a2) if a],
         })
     units = list(dict.fromkeys(c["unit"] for c in classes))
-    data = {"units": units, "classes": classes}
+    data = {"units": units, "classes": classes, "courts": COURTS}
     html = (ROOT / "template.html").read_text(encoding="utf-8")
     html = html.replace("/*__DATA__*/null", json.dumps(data, ensure_ascii=False))
     (ROOT / "index.html").write_text(html, encoding="utf-8")
