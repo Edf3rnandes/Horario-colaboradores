@@ -35,7 +35,7 @@ def main():
         if not name:
             continue
         classes.append({
-            "id": len(classes) + 1, "unit": unit, "name": name, "horario": horario, "cat": cat,
+            "id": len(classes) + 1, "q": 1, "unit": unit, "name": name, "horario": horario, "cat": cat,
             "slots": parse_horario(horario), "prof": prof, "aux": [a for a in (a1, a2) if a],
         })
     units = list(dict.fromkeys(c["unit"] for c in classes))
@@ -45,7 +45,7 @@ def main():
     for c in classes:
         a = ajustes.get("turmas", {}).get(f'{c["unit"]}|{c["name"]}')
         if a:
-            c["prof"], c["aux"] = a["prof"], a["aux"]
+            c["prof"], c["aux"], c["q"] = a["prof"], a["aux"], a.get("q", 1)
     data = {"units": units, "classes": classes, "courts": COURTS,
             "funcoes": ajustes.get("funcoes", {}), "pessoas": ajustes.get("pessoas", [])}
     html = (ROOT / "template.html").read_text(encoding="utf-8")
