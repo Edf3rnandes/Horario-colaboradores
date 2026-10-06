@@ -7,6 +7,10 @@ Planner por unidade (Altiplano, Bancários, Bessa e Cabo Branco) gerado a partir
 - **Conflitos**: pessoas em duas turmas ao mesmo tempo, troca de unidade sem intervalo, turmas sem auxiliar.
 - A quantidade de quadras de cada unidade é digitada na própria página (fica salva no navegador).
 
+## Zoom e exportação
+
+Acima da grade semanal: **− / +** (zoom), **↔ Ajustar à largura** (semana inteira na tela), **⛶ Tela cheia** (encaixa a grade inteira na tela) e **Baixar PNG / PDF** (imagem em alta resolução da semana, com legenda, para imprimir ou mandar no WhatsApp).
+
 ## Editar equipe e funções
 
 - Clique em uma turma (na grade ou em **Turmas → Editar**) para trocar o professor responsável e os auxiliares. O editor avisa se a pessoa já estiver em outra turma no mesmo horário. No campo **Alterar em** dá para trocar a equipe só em um dia (ex.: "Somente Sexta"); isso cria uma exceção sem mexer nos outros dias. Ali também se escolhe **quantas quadras a turma usa** (padrão 1); a aba **Quadras** soma isso por horário e compara com as quadras da unidade.

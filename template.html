@@ -94,6 +94,9 @@ summary{cursor:pointer;font-weight:700;padding:8px 0}
 .bold-bad{color:var(--bad);font-weight:700}
 .iss{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .blk{cursor:pointer}
+#wkwrap:fullscreen{background:var(--bg);padding:12px;overflow:auto}
+.zpct{min-width:62px;color:var(--text)!important;cursor:default}
+.seg button:disabled{opacity:1}
 .blk .bn{font-size:12.5px}
 .blk .pp,.blk .pa{font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .blk .pp{font-size:15px;margin-top:3px}
@@ -140,7 +143,7 @@ const DAY_LONG = {Seg:"Segunda",Ter:"Terça",Qua:"Quarta",Qui:"Quinta",Sex:"Sext
 const CATS = {Kids:"cK",Teens:"cT",Adulto:"cA",Competitivo:"cC"};
 const CAT_VAR = {Kids:"var(--kids)",Teens:"var(--teens)",Adulto:"var(--adulto)",Competitivo:"var(--competitivo)"};
 const VIEWS = [["semana","Semana"],["turmas","Turmas"],["pessoas","Equipe"],["quadras","Quadras"]];
-const PPM = 2.1, GAPH = 22;
+const PPM = 2.5, GAPH = 22;
 
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
@@ -148,7 +151,7 @@ const store = {
 };
 const state = {
   tab: store.get("tab","geral"), view: store.get("view","semana"), person: "", cats: new Set(Object.keys(CATS)),
-  courts: {...DATA.courts, ...store.get("quadras", {})},
+  courts: {...DATA.courts, ...store.get("quadras", {})}, zoom: 1, fit: null,
   edits: {turmas:{}, funcoes:{}, pessoas:[], matriculas:{}, ...store.get("ajustes", {})}
 };
 const ROLES = {prof:{icon:"🎓", label:"Professor (formado)"}, est:{icon:"🌱", label:"Estagiário"}};
@@ -285,11 +288,15 @@ function render(){
   if(state.tab==="geral") v.innerHTML = overviewView();
   else if(state.tab==="conflitos") v.innerHTML = issuesView();
   else v.innerHTML = unitView(state.tab);
+  applyZoom();
 }
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if(!t) return;
   const a = t.dataset.act, v = t.dataset.v;
   if(a==="edit"){ openEditor(+v); return; }
+  if(a==="zoom"){ zoomAct(v); return; }
+  if(a==="wk-png"){ exportPng(); return; }
+  if(a==="wk-pdf"){ exportPdf(); return; }
   if(a==="mat-open"){ openMat(); return; }
   if(a==="mat-import"){ importMat(); return; }
   if(a==="mat-clear"){ if(confirm("Apagar todas as matrículas importadas neste navegador?")){ state.edits.matriculas = {}; saveEdits(); render(); openMat(); } return; }
@@ -492,7 +499,7 @@ function unitView(u){
     <button class="btn" data-act="mat-open">📋 Colar matrículas</button>
     <span class="muted small">${uniq(cs).length} turmas</span></div>`;
   let body = "";
-  if(state.view==="semana") body = filtersBar(cs) + weekView(cs);
+  if(state.view==="semana") body = filtersBar(cs) + weekView(cs, false, "Planner "+u);
   else if(state.view==="turmas") body = filtersBar(cs) + classTable(cs.filter(visible), false);
   else if(state.view==="pessoas") body = peopleView(cs, false);
   else body = courtsView(u, cs);
@@ -500,9 +507,8 @@ function unitView(u){
 }
 
 /* grade semanal */
-function weekView(cs, showUnit){
+function weekLayout(cs){
   const slots = cs.flatMap(c => c.slots.map(s => ({...s, c})));
-  if(!slots.length) return "";
   const hours = [];
   for(let h=0; h<24; h++) if(slots.some(s => s.s < (h+1)*60 && s.e > h*60)) hours.push(h);
   const off = {}; let y = 10, prev = null; const gaps = [];
@@ -527,6 +533,13 @@ function weekView(cs, showUnit){
     }
     flush(); lanesPer[d] = maxL; placed[d] = ds;
   }
+  return {slots, hours, off, gaps, H, Y, Yend, days, lanesPer, placed};
+}
+function weekView(cs, showUnit, title){
+  const L = weekLayout(cs);
+  if(!L.slots.length) return "";
+  state.lastWeek = {cs, showUnit, title: title || "Semana"};
+  const {hours, off, gaps, H, Y, Yend, days, lanesPer, placed} = L;
   const cols = `54px ${days.map(d => `minmax(${Math.max(150, lanesPer[d]*138)}px,${lanesPer[d]}fr)`).join(" ")}`;
   const heads = days.map(d => {
     const n = new Set(placed[d].map(s => s.c.id)).size;
@@ -545,9 +558,142 @@ function weekView(cs, showUnit){
           <div class="pp"><span class="pl">Prof</span>${ic(s.c.prof)}${esc(first(s.c.prof))}</div>
           ${s.c.aux.map(n => `<div class="pa"><span class="pl">Aux</span>${ic(n)}${esc(first(n))}</div>`).join("")}</div>`; }).join("")}
     </div>`).join("");
-  return `<div class="wk"><div class="wkgrid" style="grid-template-columns:${cols}">
+  return `<div id="wkwrap"><div class="bar zbar">
+      <div class="seg"><button data-act="zoom" data-v="-" title="Diminuir">−</button><button class="zpct" disabled>100%</button><button data-act="zoom" data-v="+" title="Aumentar">+</button></div>
+      <button class="btn" data-act="zoom" data-v="w">↔ Ajustar à largura</button>
+      <button class="btn" data-act="zoom" data-v="full">⛶ Tela cheia</button>
+      <button class="btn" data-act="wk-png">🖼 Baixar PNG</button>
+      <button class="btn" data-act="wk-pdf">📄 Baixar PDF</button>
+    </div>
+    <div class="wk"><div class="wkgrid" style="grid-template-columns:${cols}">
     <div class="dh" style="border-left:0"></div>${heads}${gut}${body}</div></div>
-    <p class="muted small">Faixas listradas = horários sem aula (ocultados). Borda vermelha = alguém dessa turma está em outra turma ao mesmo tempo (veja “Conflitos”).</p>`;
+    <p class="muted small">Faixas listradas = horários sem aula (ocultados). Borda vermelha = alguém dessa turma está em outra turma ao mesmo tempo (veja “Conflitos”).</p></div>`;
+}
+
+/* zoom */
+function applyZoom(){
+  const wrap = document.getElementById("wkwrap"); if(!wrap) return;
+  const g = wrap.querySelector(".wkgrid"), box = wrap.querySelector(".wk"), bar = wrap.querySelector(".zbar");
+  g.style.zoom = 1; g.style.width = "max-content";
+  const nw = g.offsetWidth, nh = g.offsetHeight;
+  const availW = box.clientWidth - 2;
+  const full = document.fullscreenElement === wrap;
+  if(state.fit){
+    let z = availW / nw;
+    if(state.fit==="all" && full) z = Math.min(z, (wrap.clientHeight - bar.offsetHeight - 40) / nh);
+    state.zoom = Math.max(0.2, Math.min(z, 2));
+  }
+  const z = state.zoom;
+  g.style.zoom = z;
+  g.style.width = Math.max(availW / z, nw) + "px";
+  wrap.querySelector(".zpct").textContent = Math.round(z*100) + "%";
+}
+function zoomAct(v){
+  if(v==="+" || v==="-"){ state.fit = null; state.zoom = Math.max(0.2, Math.min(2, +(state.zoom + (v==="+" ? 0.1 : -0.1)).toFixed(2))); }
+  else if(v==="w"){ state.fit = "w"; }
+  else if(v==="full"){
+    const wrap = document.getElementById("wkwrap");
+    if(document.fullscreenElement){ document.exitFullscreen(); return; }
+    state.fit = "all";
+    if(wrap.requestFullscreen) wrap.requestFullscreen().catch(() => { state.fit = "w"; applyZoom(); });
+  }
+  applyZoom();
+}
+document.addEventListener("fullscreenchange", () => { if(!document.fullscreenElement && state.fit==="all") state.fit = "w"; applyZoom(); });
+window.addEventListener("resize", () => { if(state.fit) applyZoom(); });
+
+/* exportar como imagem / PDF */
+const CAT_HEX = {Kids:"#d98a00", Teens:"#0f9d8a", Adulto:"#3b6fd4", Competitivo:"#8a4fd0"};
+const mixWhite = (hex, a) => { const n = parseInt(hex.slice(1),16); return `rgb(${[n>>16, (n>>8)&255, n&255].map(c => Math.round(255 - (255-c)*a)).join(",")})`; };
+function drawWeekCanvas(){
+  const {cs, showUnit, title} = state.lastWeek, L = weekLayout(cs), S = 2;
+  const FONT = "system-ui,-apple-system,'Segoe UI',Roboto,'Noto Color Emoji',sans-serif";
+  const GW = 64, HDR = 38, TOP = 70, FOOT = 40, dw = {};
+  let W = GW; L.days.forEach(d => { dw[d] = Math.max(210, L.lanesPer[d]*170); W += dw[d]; });
+  const Ht = TOP + HDR + L.H + FOOT, gy = TOP + HDR;
+  const cv = document.createElement("canvas"); cv.width = W*S; cv.height = Ht*S;
+  const x = cv.getContext("2d"); x.scale(S,S);
+  const rr = (px,py,w,h,r) => { x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); };
+  const wrapTxt = (t, maxW) => { const out = []; let line = ""; for(const w of t.split(" ")){ const tr = line ? line+" "+w : w; if(x.measureText(tr).width > maxW && line){ out.push(line); line = w; } else line = tr; } out.push(line); return out; };
+  x.fillStyle = "#fff"; x.fillRect(0,0,W,Ht);
+  x.textBaseline = "alphabetic";
+  x.fillStyle = "#1b2330"; x.font = `800 26px ${FONT}`; x.fillText(title, 16, 40);
+  x.fillStyle = "#5d6878"; x.font = `500 13px ${FONT}`; x.fillText("Planner de Treinos · gerado em "+new Date().toLocaleDateString("pt-BR"), 16, 60);
+  let lx = W - 16; x.font = `600 13px ${FONT}`;
+  for(const k of Object.keys(CAT_HEX).reverse()){
+    lx -= x.measureText(k).width; x.fillStyle = "#1b2330"; x.fillText(k, lx, 40);
+    lx -= 18; x.fillStyle = CAT_HEX[k]; rr(lx, 29, 12, 12, 3); x.fill(); lx -= 22;
+  }
+  x.fillStyle = "#eef0f4"; x.fillRect(0, TOP, W, HDR); x.fillRect(0, gy, GW, L.H);
+  x.strokeStyle = "#dde1e8"; x.lineWidth = 1;
+  let cx = GW; const colX = {};
+  for(const d of L.days){
+    colX[d] = cx; x.fillStyle = "#1b2330"; x.font = `700 16px ${FONT}`; x.textAlign = "center";
+    x.fillText(DAY_LONG[d], cx + dw[d]/2, TOP + 25); x.textAlign = "left";
+    x.beginPath(); x.moveTo(cx+.5, TOP); x.lineTo(cx+.5, gy+L.H); x.stroke(); cx += dw[d];
+  }
+  for(const g of L.gaps){ x.fillStyle = "#e9ecf2"; x.fillRect(GW, gy+g, W-GW, GAPH); }
+  x.font = `500 12px ${FONT}`; x.fillStyle = "#5d6878"; x.textAlign = "right";
+  for(const h of L.hours){ const yy = gy + L.off[h]; x.fillText(String(h).padStart(2,"0")+":00", GW-8, yy+4);
+    x.beginPath(); x.moveTo(GW, yy+.5); x.lineTo(W, yy+.5); x.stroke(); }
+  x.textAlign = "left";
+  for(const d of L.days) for(const s of L.placed[d]){
+    const c = s.c, hex = CAT_HEX[c.cat] || "#667", bw = dw[d]/s.n - 6, bx = colX[d] + s.lane*(dw[d]/s.n) + 3;
+    const by = gy + L.Y(s.s) + 1, bh = L.Yend(s.e) - L.Y(s.s) - 2;
+    const dim = !showUnit && !visible(c);
+    x.save(); x.globalAlpha = dim ? 0.2 : 1;
+    rr(bx, by, bw, bh, 7); x.fillStyle = mixWhite(hex, 0.17); x.fill();
+    x.save(); rr(bx, by, bw, bh, 7); x.clip();
+    x.fillStyle = hex; x.fillRect(bx, by, 4, bh);
+    const tx = bx + 11, mw = bw - 16; let ty = by + 16;
+    x.fillStyle = "#1b2330"; x.font = `700 13px ${FONT}`;
+    for(const ln of wrapTxt(c.name, mw).slice(0,2)){ x.fillText(ln, tx, ty); ty += 14; }
+    x.font = `500 12px ${FONT}`; x.fillStyle = "#5d6878";
+    x.fillText((showUnit ? c.unit+" · " : "")+hm(s.s)+"–"+hm(s.e)+(c.q>1 ? " · "+c.q+" quadras" : ""), tx, ty); ty += 15;
+    const m = matOf(c);
+    if(m){ x.font = `700 12px ${FONT}`; x.fillStyle = matLevel(m)==="full" ? "#c62828" : matLevel(m)==="near" ? "#a15c00" : "#1b2330"; x.fillText(`👥 ${m.qtd}/${m.limite}`, tx, ty); ty += 15; }
+    const person = (n, size, lab) => { x.font = `700 9px ${FONT}`; x.fillStyle = "#5d6878"; x.fillText(lab, tx, ty);
+      const lw = x.measureText(lab).width + 5; x.font = `800 ${size}px ${FONT}`; x.fillStyle = "#1b2330";
+      x.fillText((roleOf(n) ? ROLES[roleOf(n)].icon+" " : "")+first(n), tx+lw, ty); ty += size+3; };
+    ty += 3; person(c.prof, 16, "PROF"); c.aux.forEach(n => person(n, 15, "AUX"));
+    x.restore();
+    if(issueClassIds.has(c.id)){ rr(bx+1, by+1, bw-2, bh-2, 7); x.strokeStyle = "#c62828"; x.lineWidth = 2; x.stroke(); x.strokeStyle = "#dde1e8"; x.lineWidth = 1; }
+    x.restore();
+  }
+  x.fillStyle = "#5d6878"; x.font = `500 12px ${FONT}`;
+  x.fillText("🎓 professor formado · 🌱 estagiário · 👥 alunos/limite da turma · borda vermelha = pessoa em duas turmas ao mesmo tempo", 16, Ht - 16);
+  return cv;
+}
+const slug = s => normTxt(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function download(blob, name){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function exportPng(){
+  const cv = drawWeekCanvas();
+  cv.toBlob(b => download(b, slug(state.lastWeek.title)+".png"), "image/png");
+}
+function exportPdf(){
+  const cv = drawWeekCanvas();
+  const bin = atob(cv.toDataURL("image/jpeg", 0.93).split(",")[1]), jpg = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) jpg[i] = bin.charCodeAt(i);
+  const pw = cv.width >= cv.height ? 842 : 595, ph = Math.round(pw * cv.height / cv.width);
+  const enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+  const push = b => { const u = typeof b==="string" ? enc.encode(b) : b; parts.push(u); len += u.length; };
+  const obj = (n, body) => { offs[n] = len; push(`${n} 0 obj\n${body}\nendobj\n`); };
+  push("%PDF-1.4\n");
+  obj(1, "<</Type/Catalog/Pages 2 0 R>>");
+  obj(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>");
+  obj(3, `<</Type/Page/Parent 2 0 R/MediaBox[0 0 ${pw} ${ph}]/Resources<</XObject<</Im0 4 0 R>>>>/Contents 5 0 R>>`);
+  offs[4] = len;
+  push(`4 0 obj\n<</Type/XObject/Subtype/Image/Width ${cv.width}/Height ${cv.height}/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ${jpg.length}>>\nstream\n`);
+  push(jpg); push("\nendstream\nendobj\n");
+  const content = `q ${pw} 0 0 ${ph} 0 0 cm /Im0 Do Q`;
+  obj(5, `<</Length ${content.length}>>\nstream\n${content}\nendstream`);
+  const xref = len; let xr = "xref\n0 6\n0000000000 65535 f \n";
+  for(let i=1;i<=5;i++) xr += String(offs[i]).padStart(10,"0") + " 00000 n \n";
+  push(xr + `trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF`);
+  download(new Blob(parts, {type:"application/pdf"}), slug(state.lastWeek.title)+".pdf");
 }
 
 /* tabela de turmas */
@@ -677,7 +823,7 @@ function issuesView(){
   <h2 style="font-size:17px;margin-top:20px">Agenda da pessoa (todas as unidades)</h2>
   <div class="bar"><label class="f">Pessoa <select data-act="issueperson">${allNames.map(n =>
     `<option value="${esc(n)}"${n===who?" selected":""}>${esc(n)}</option>`).join("")}</select></label></div>
-  ${weekView(personClasses.map(c => ({...c, slots:c.slots})), true)}
+  ${weekView(personClasses, true, "Agenda de "+who)}
   <h2 style="font-size:17px;margin-top:20px">Outros avisos</h2>
   <div class="card">
   ${sec("Troca de unidade sem intervalo (menos de 30 min)", ISSUES.desl, line, false)}
