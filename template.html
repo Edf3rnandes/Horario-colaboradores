@@ -166,7 +166,34 @@ function computeIssues(){
   return {dup:[...dup.values()], desl:[...desl.values()], mesma,
           semAux: DATA.classes.filter(c => !c.aux.length)};
 }
+function dupClusters(){
+  const out = [];
+  const names = [...new Set(DATA.classes.flatMap(c => people(c).map(p => p.n)))];
+  for(const n of names){
+    const sigs = new Map();
+    for(const d of DAYS){
+      const list = [];
+      for(const c of DATA.classes) for(const p of people(c)) if(p.n===n)
+        for(const s of c.slots) if(s.d===d) list.push({...s, c, r:p.r});
+      list.sort((a,b) => a.s-b.s || a.e-b.e);
+      let cur = [], end = -1; const groups = [];
+      for(const s of list){
+        if(cur.length && s.s >= end){ groups.push(cur); cur = []; end = -1; }
+        cur.push(s); end = Math.max(end, s.e);
+      }
+      if(cur.length) groups.push(cur);
+      for(const g of groups){
+        if(new Set(g.map(x => x.c.id)).size < 2) continue;
+        const sig = g.map(x => x.c.id+"@"+x.s+"-"+x.e).join(",");
+        const e = sigs.get(sig) || {n, items:g, days:[]}; e.days.push(d); sigs.set(sig, e);
+      }
+    }
+    out.push(...sigs.values());
+  }
+  return out;
+}
 const ISSUES = computeIssues();
+const CLUSTERS = dupClusters();
 const issueClassIds = new Set(ISSUES.dup.flatMap(e => [e.x.c.id, e.y.c.id]));
 
 /* ---------- navegação ---------- */
@@ -174,7 +201,7 @@ function renderTabs(){
   const tabs = [["geral","Visão geral"], ...DATA.units.map(u => [u,u]), ["conflitos","Conflitos"]];
   document.getElementById("tabs").innerHTML = tabs.map(([k,l]) =>
     `<button class="tab" role="tab" data-act="tab" data-v="${esc(k)}" aria-selected="${state.tab===k}">${esc(l)}${
-      k==="conflitos" ? `<span class="badge">${ISSUES.dup.length+ISSUES.desl.length}</span>` : ""}</button>`).join("");
+      k==="conflitos" ? `<span class="badge">${CLUSTERS.length}</span>` : ""}</button>`).join("");
 }
 function render(){
   renderTabs();
@@ -194,6 +221,7 @@ document.addEventListener("click", e => {
 document.addEventListener("change", e => {
   const t = e.target;
   if(t.dataset.act==="person"){ state.person = t.value; render(); }
+  if(t.dataset.act==="issueperson"){ state.issuePerson = t.value; render(); }
   if(t.dataset.act==="courts"){
     const n = parseInt(t.value,10);
     if(n>0) state.courts[state.tab] = n; else delete state.courts[state.tab];
@@ -231,7 +259,7 @@ function unitView(u){
 }
 
 /* grade semanal */
-function weekView(cs){
+function weekView(cs, showUnit){
   const slots = cs.flatMap(c => c.slots.map(s => ({...s, c})));
   if(!slots.length) return "";
   const hours = [];
@@ -268,12 +296,12 @@ function weekView(cs){
       ${gaps.map(g => `<div class="gap" style="top:${g}px;height:${GAPH}px"></div>`).join("")}
       ${placed[d].map(s => {
         const top = Y(s.s), h = Yend(s.e) - top, w = 100/s.n;
-        const dim = visible(s.c) ? "" : " dim";
+        const dim = (showUnit || visible(s.c)) ? "" : " dim";
         const bad = issueClassIds.has(s.c.id) ? " bad" : "";
         const aux = s.c.aux.map(first).join(", ");
         const tip = `${s.c.name} (${s.c.cat})\n${hm(s.s)}–${hm(s.e)}\nProf: ${s.c.prof}${s.c.aux.length ? "\nAux: "+s.c.aux.join(", ") : ""}${bad ? "\n⚠ pessoa em outra turma no mesmo horário" : ""}`;
         return `<div class="blk ${CATS[s.c.cat]||""}${dim}${bad}" title="${esc(tip)}" style="top:${top}px;height:${h-2}px;left:calc(${s.lane*w}% + 2px);width:calc(${w}% - 4px)">
-          <b>${esc(s.c.name)}</b><span class="t">${hm(s.s)}–${hm(s.e)}</span><br>
+          <b>${esc(s.c.name)}</b><span class="t">${showUnit ? esc(s.c.unit)+" · " : ""}${hm(s.s)}–${hm(s.e)}</span><br>
           <span>${esc(first(s.c.prof))}${aux ? " · aux: "+esc(aux) : ""}</span></div>`; }).join("")}
     </div>`).join("");
   return `<div class="wk"><div class="wkgrid" style="grid-template-columns:${cols}">
@@ -358,30 +386,44 @@ function overviewView(){
       <div style="margin:6px 0">${cats.map(([k,v]) => `<span class="tag ${CATS[k]}">${k} ${v}</span>`).join(" ")}</div>
       <div class="muted small">Quadras: ${n ? n : "<b>a informar</b>"}</div>
       <p><button class="chip" data-act="tab" data-v="${esc(u)}">Abrir planner →</button></p></div>`; }).join("");
-  const nIss = ISSUES.dup.length + ISSUES.desl.length;
+  const nIss = CLUSTERS.length;
   return `<div class="grid3" style="margin-bottom:16px">${cards}</div>
-    ${nIss ? `<div class="note bad"><b>${ISSUES.dup.length}</b> sobreposições de pessoa em duas turmas e <b>${ISSUES.desl.length}</b> trocas de unidade sem intervalo. <a href="#" data-act="tab" data-v="conflitos">Ver conflitos</a></div>` : ""}
+    ${nIss ? `<div class="note bad"><b>${CLUSTERS.length}</b> horários em que uma pessoa está em duas ou mais turmas ao mesmo tempo. <a href="#" data-act="tab" data-v="conflitos">Ver conflitos</a></div>` : ""}
     <h2 style="font-size:17px">Todas as turmas</h2>${classTable(DATA.classes, true)}
     <h2 style="font-size:17px;margin-top:20px">Equipe (todas as unidades)</h2>${peopleView(DATA.classes, true)}`;
 }
 
 /* ---------- conflitos ---------- */
 function issuesView(){
-  const line = (e, extra) => {
-    const f = s => `<b>${esc(s.c.name)}</b> <span class="muted">(${esc(s.c.unit)}, ${hm(s.s)}–${hm(s.e)}, ${s.r==="Prof"?"professor":"auxiliar"})</span>`;
-    return `<div class="iss"><b>${esc(e.n)}</b>: ${f(e.x)} × ${f(e.y)} · ${[...new Set(e.days)].join("/")}${extra||""}</div>`;
-  };
-  const groupBy = list => { const g = {}; list.forEach(e => (g[e.n] = g[e.n]||[]).push(e)); return Object.entries(g).sort((a,b)=>b[1].length-a[1].length); };
+  const who = state.issuePerson || "Glauber Grangeiro de Lima";
+  const names = [...new Set(CLUSTERS.map(e => e.n))];
+  const allNames = [...new Set(DATA.classes.flatMap(c => people(c).map(p => p.n)))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const fmt = it => `<li><b>${esc(it.c.name)}</b> <span class="muted">${esc(it.c.unit)} · ${hm(it.s)}–${hm(it.e)} · ${it.r==="Prof"?"professor":"auxiliar"}</span></li>`;
+  const groupBy = {};
+  CLUSTERS.forEach(e => (groupBy[e.n] = groupBy[e.n] || []).push(e));
+  const dupHtml = Object.entries(groupBy).sort((a,b) => b[1].length-a[1].length).map(([n, list]) =>
+    `<details open><summary>${esc(n)} · ${list.length} horário(s) duplicado(s)</summary>${
+      list.map(e => `<div class="iss"><b>${[...new Set(e.days)].map(d => DAY_LONG[d]).join(" / ")}</b>
+        <span class="tag bad">${e.items.length} turmas ao mesmo tempo</span><ul style="margin:6px 0 0;padding-left:18px">${e.items.map(fmt).join("")}</ul></div>`).join("")}</details>`).join("");
   const sec = (title, list, mk, open) => `<details${open?" open":""}><summary>${title} (${list.length})</summary>${
     list.length ? list.map(mk).join("") : '<div class="muted">Nada encontrado.</div>'}</details>`;
-  return `<p class="muted">Gerado automaticamente a partir dos horários da planilha. Pode ser erro de preenchimento ou um ajuste real a fazer.</p>
+  const line = e => {
+    const f = s => `<b>${esc(s.c.name)}</b> <span class="muted">(${esc(s.c.unit)}, ${hm(s.s)}–${hm(s.e)})</span>`;
+    return `<div class="iss"><b>${esc(first(e.n))}</b>: ${f(e.x)} → ${f(e.y)} · ${[...new Set(e.days)].join("/")} · intervalo ${e.gap} min</div>`;
+  };
+  const personClasses = DATA.classes.filter(c => people(c).some(p => p.n===who));
+  return `<p class="muted">Cada pessoa só pode estar em uma turma por vez. Abaixo, tudo que a planilha coloca em duas ou mais turmas no mesmo horário.</p>
+  <div class="card">${dupHtml || '<div class="note ok">Nenhuma sobreposição.</div>'}</div>
+  <h2 style="font-size:17px;margin-top:20px">Agenda da pessoa (todas as unidades)</h2>
+  <div class="bar"><label class="f">Pessoa <select data-act="issueperson">${allNames.map(n =>
+    `<option value="${esc(n)}"${n===who?" selected":""}>${esc(n)}</option>`).join("")}</select></label></div>
+  ${weekView(personClasses.map(c => ({...c, slots:c.slots})), true)}
+  <h2 style="font-size:17px;margin-top:20px">Outros avisos</h2>
   <div class="card">
-  ${sec("Mesma pessoa em duas turmas ao mesmo tempo", ISSUES.dup, e => line(e), true)}
-  ${sec("Troca de unidade sem intervalo (menos de 30 min)", ISSUES.desl, e => line(e, ` · intervalo ${e.gap} min`), true)}
+  ${sec("Troca de unidade sem intervalo (menos de 30 min)", ISSUES.desl, line, false)}
   ${sec("Professor também listado como auxiliar na mesma turma", ISSUES.mesma, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}): ${esc(c.prof)}</div>`, true)}
   ${sec("Turmas sem auxiliar", ISSUES.semAux, c => `<div class="iss"><b>${esc(c.name)}</b> (${esc(c.unit)}) · ${esc(fmtSlots(c))} · prof. ${esc(first(c.prof))}</div>`, false)}
-  </div>
-  <p class="muted small">Resumo por pessoa (sobreposições): ${groupBy(ISSUES.dup).map(([n,l]) => `${esc(first(n))} ${l.length}`).join(" · ") || "—"}</p>`;
+  </div>`;
 }
 
 render();
